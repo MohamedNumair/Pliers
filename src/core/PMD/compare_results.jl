@@ -1,6 +1,21 @@
+"""
+    diff_vectors(vec1::Vector{Float64}, vec2::Vector{Float64})
+
+Prints the difference between two vectors element-wise.
+
+# Arguments
+- `vec1::Vector{Float64}`: The first vector.
+- `vec2::Vector{Float64}`: The second vector.
+
+# Example
+
+diff_vectors([1.0, 2.0, 3.0], [1.0, 2.0, 4.0])
+
+
+"""
 function diff_vectors(vec1::Vector{Float64}, vec2::Vector{Float64})
-    green = Crayon(foreground = :green)
-    red = Crayon(foreground = :red)
+    green = _CRN.Crayon(foreground = :green)
+    red = _CRN.Crayon(foreground = :red)
     display(vec1)
     display(vec2)
     println("diff :")
@@ -23,3 +38,6 @@ function diff_vectors(vec1::Vector{Float64}, vec2::Vector{Float64})
         println()  # Newline after each comparison    
     end
 end
+
+# Exporting
+export diff_vectors
