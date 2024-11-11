@@ -16,11 +16,13 @@ using Makie
 using CairoMakie
 using WGLMakie
 using GLMakie
+using GraphMakie
 
 # data analysis packages
 import Statistics
 using LinearAlgebra
 using Graphs
+using MetaGraphs
 # using Dates
 # using StatsPlots
 # using StatsBase
@@ -65,7 +67,6 @@ author() = println("This package was developped by Mohamed Numair")
 # helper functions
 include("core/styles.jl")
 include("core/utils.jl")
-include("core/PMD/compare_results.jl")
 include("core/PMD/results_explorer.jl")
 include("core/PMD/eng_explorer.jl")
 include("core/export.jl")

@@ -34,3 +34,111 @@ function extra_keys(eng_data::Dict{String, Any}, expected_keys; show_keys=false)
         @show extra_keys
     end
 end
+
+
+"""
+    diff_vectors(vec1::Vector{Float64}, vec2::Vector{Float64})
+
+Prints the difference between two vectors element-wise.
+
+# Arguments
+- `vec1::Vector{Float64}`: The first vector.
+- `vec2::Vector{Float64}`: The second vector.
+
+# Example
+
+diff_vectors([1.0, 2.0, 3.0], [1.0, 2.0, 4.0])
+
+
+"""
+function diff_vectors(vec1::Vector{Float64}, vec2::Vector{Float64})
+    green = _CRN.Crayon(foreground = :green)
+    red = _CRN.Crayon(foreground = :red)
+    display(vec1)
+    display(vec2)
+    println("diff :")
+    for (num1, num2) in zip(vec1, vec2)
+        str1 = string(num1)
+        str2 = string(num2)
+    
+        # Ensure the strings have the same length for comparison
+        len = max(length(str1), length(str2))
+        str1 = rpad(str1, len)
+        str2 = rpad(str2, len)
+    
+        for (d1, d2) in zip(str1, str2)
+            if d1 == d2
+                print(green(string(d1)))
+            else
+                print(red(string(d2)))
+            end
+        end
+        println()  # Newline after each comparison    
+    end
+end
+
+# Exporting
+export diff_vectors
+
+
+function convert_keys_to_symbols(data)
+    if isa(data, Dict)
+        new_data = Dict{Symbol, Any}()
+        for (key, value) in data
+            new_data[Symbol(key)] = convert_keys_to_symbols(value)
+        end
+        return new_data
+    elseif isa(data, Vector)
+        return [convert_keys_to_symbols(item) for item in data]
+    else
+        return data
+    end
+end
+
+
+# fix MetaGraphs set_indexing_prop! function
+
+
+"""
+    set_indexing_prop!(g, prop)
+    set_indexing_prop!(g, v, prop, val)
+
+Make property `prop` into an indexing property. If any values for this property
+are already set, each vertex must have unique values. Optionally, set the index
+`val` for vertex `v`. Any vertices without values will be set to a default
+("(prop)(v)").
+"""
+function set_indexing_prop!(g::AbstractMetaGraph, prop::Symbol; exclude=nothing)
+    in(prop, g.indices) && return g.indices
+    index_values = [g.vprops[v][prop] for v in keys(g.vprops) if haskey(g.vprops[v], prop)]
+    length(index_values) != length(union(index_values)) && error("Cannot make $prop an index, duplicate values detected")
+    index_values = Set(index_values)
+
+    g.metaindex[prop] = Dict{Any,Integer}()
+    for v in vertices(g)
+        if !haskey(g.vprops, v) || !haskey(g.vprops[v], prop)
+            val = default_index_value(v, prop, index_values, exclude=exclude)
+            set_prop!(g, v, prop, val)
+        end
+        g.metaindex[prop][g.vprops[v][prop]] = v
+    end
+    push!(g.indices, prop)
+    return g.indices
+end
+
+
+"""
+    default_index_value(v, prop, index_values; exclude=nothing)
+
+Provides a default index value for a vertex if no value currently exists. The default is a string: "\$prop\$i" where `prop` is the property name and `i` is the vertex number. If some other vertex already has this name, a randomized string is generated (though the way it is generated is deterministic).
+"""
+function default_index_value(v::Integer, prop::Symbol, index_values::Set{}; exclude=nothing)
+    val = string(prop) * string(v)
+    if in(val, index_values) || val == exclude
+        seed!(v + hash(prop))
+        val = randstring()
+        @warn("'$(string(prop))$v' is already in index, setting ':$prop' for vertex $v to $val")
+    end
+    return val
+end
+
