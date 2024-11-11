@@ -27,10 +27,10 @@ using MetaGraphs
 # using StatsPlots
 # using StatsBase
 # using Distributions
-# using Random
+# using Random  
 
 # Power Distribution Tools
-# import PowerModelsDistribution
+import PowerModelsDistribution
 # import PowerModelsDistributionStateEstimation
 
 
@@ -69,6 +69,7 @@ include("core/styles.jl")
 include("core/utils.jl")
 include("core/PMD/results_explorer.jl")
 include("core/PMD/eng_explorer.jl")
+include("core/PMD/network_plotting.jl")
 include("core/export.jl")
 
 
