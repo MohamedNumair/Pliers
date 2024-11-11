@@ -8,7 +8,7 @@
   - [x] filter elements ENGINEERING model details with a specific rule
   - [x] plot a tree of a DSS file 
   - [x] plot a tree of a PMD ENGINEERING Model 
-  - [ ] plot a real graph if file has coordinates
+  - [x] plot a real graph if file has coordinates
   - [ ] explore MATHEMATICAL model summary
   - [ ] explore MATHEMATICAL model details
   - [ ] filter elements MATHEMATICAL model details with a specific rule

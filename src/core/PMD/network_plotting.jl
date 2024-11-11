@@ -40,18 +40,19 @@ function plot_network_tree(eng::Dict{String,Any}; makie_backend=WGLMakie)
     for (b,bus) in eng_sym[:bus]
         bus[:bus_id] = b
     end    
+    
     for (l, line) in eng_sym[:line]
         line[:line_id] = l
     end
-    
+
     # adding `sourcebus` first to make it root
-    
     if haskey(eng_sym[:bus], :sourcebus)
         add_vertex!(network_graph, eng_sym[:bus][:sourcebus])
     else 
         error_text("sourcebus not found in the bus data, it is needed to have the root bus with key sourcebus in the ENGINEERING model")
         error("please add sourcebus to the bus data")
     end
+
     # adding rest of the buses
     for (b,bus) in eng_sym[:bus]
         if bus[:bus_id] != :sourcebus
@@ -70,17 +71,16 @@ function plot_network_tree(eng::Dict{String,Any}; makie_backend=WGLMakie)
         t_vertix = network_graph[t_bus, :bus_id]
         add_edge!(network_graph, f_vertix, t_vertix, line)
     end
-    
-    
+
     return graphplot(network_graph;
                                     layout = GraphMakie.Buchheim(),
                                     nlabels = [string.(network_graph[i, :bus_id]) for i in 1:nv(network_graph)],
                                     #ilabels=[network_graph[i, :bus_id] for i in 1:nv(network_graph)],
-                                    elabels=[" $(string(get_prop(network_graph, e, :line_id))), $(string(get_prop(network_graph, e, :length))) m " for e in edges(network_graph)],
+                                    #elabels=[" $(string(get_prop(network_graph, e, :line_id))), $(string(get_prop(network_graph, e, :length))) m " for e in edges(network_graph)],
                                     #arrow_shift=:center
                                     )
 
-    end
+end
 
 
 
@@ -102,4 +102,88 @@ A plot of the network graph.
 function plot_network_tree(dss::String; makie_backend=WGLMakie)
     eng = PowerModelsDistribution.parse_file(dss)
     plot_network_tree(eng, makie_backend=makie_backend)
+end
+
+
+
+function plot_network_coords(eng::Dict{String,Any}; makie_backend=WGLMakie)
+    makie_backend.activate!()
+    PowerModelsDistribution.transform_loops!(eng)
+    eng_sym = convert_keys_to_symbols(deepcopy(eng))
+    network_graph = MetaDiGraph()
+
+
+    lons = []
+    lats = []
+    # add bus keys as :bus_id
+    for (b,bus) in eng_sym[:bus]
+        bus[:bus_id] = b
+        if haskey(bus, :lon) && haskey(bus, :lat)
+            push!(lons, bus[:lon])
+            push!(lats, bus[:lat])
+        end
+    end    
+    
+    for (l, line) in eng_sym[:line]
+        line[:line_id] = l
+    end
+    
+    if length(lons) > 0
+        lon_s = eng_sym[:bus][Symbol(eng_sym[:line][findfirst(line-> line[:f_bus] =="sourcebus" , eng_sym[:line])][:t_bus])][:lon]
+        lat_s = eng_sym[:bus][Symbol(eng_sym[:line][findfirst(line-> line[:f_bus] =="sourcebus" , eng_sym[:line])][:t_bus])][:lat] 
+    end
+    
+    layouting_vector = []
+    # adding `sourcebus` first to make it root
+    
+    if haskey(eng_sym[:bus], :sourcebus)
+        add_vertex!(network_graph, eng_sym[:bus][:sourcebus])
+        length(lons) > 0 ? push!(layouting_vector, (lon_s, lat_s)) : nothing
+    else 
+        error_text("sourcebus not found in the bus data, it is needed to have the root bus with key sourcebus in the ENGINEERING model")
+        error("please add sourcebus to the bus data")
+    end
+
+    # adding rest of the buses
+    for (b,bus) in eng_sym[:bus]
+        if bus[:bus_id] != :sourcebus
+        add_vertex!(network_graph, bus)
+            if haskey(bus, :lon) && haskey(bus, :lat)
+                push!(layouting_vector, (bus[:lon], bus[:lat]))
+            end
+        end
+    end
+
+    # use bus_id as indexing property
+    set_indexing_prop!(network_graph, :bus_id)
+
+    # adding edges based on the f_bus and t_bus bus_id indices
+    for (l, line) in eng_sym[:line]
+        f_bus = Symbol(line[:f_bus])
+        t_bus = Symbol(line[:t_bus])
+        f_vertix = network_graph[f_bus, :bus_id]
+        t_vertix = network_graph[t_bus, :bus_id]
+        add_edge!(network_graph, f_vertix, t_vertix, line)
+    end
+    
+    
+    fixed_layout(_) = layouting_vector
+
+    if length(layouting_vector) > 1
+        GraphLayout = fixed_layout
+    else
+        @warn "No coordinates found for plotting, using tree layout instead"
+        error_text("For the function `plot_network_coords` to work, the bus data must contain `lon` and `lat` keys for each bus, please add these keys to the bus data The network will be plotted using the tree layout instead, please use the function `plot_network_tree` to plot the network tree if that what was intended")
+        GraphLayout = GraphMakie.Buchheim()
+    end
+
+    
+    return graphplot(network_graph;
+                                    layout = GraphLayout,
+                                    nlabels = [string.(network_graph[i, :bus_id]) for i in 1:nv(network_graph)],
+                                    #ilabels=[network_graph[i, :bus_id] for i in 1:nv(network_graph)],
+                                    #elabels=[" $(string(get_prop(network_graph, e, :line_id))), $(string(get_prop(network_graph, e, :length))) m " for e in edges(network_graph)],
+                                    #arrow_shift=:center
+                                    )
+
 end
