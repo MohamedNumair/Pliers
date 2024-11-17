@@ -19,4 +19,5 @@
   - [ ] filter elements SIMULATION RESULTS model details with a specific rule
   - [ ] plot a tree of a PMD SIMULATION RESULTS Model with results on top of the graph
   - [ ] plot a real graph if file has coordinates with results on top of the graph
+  - [ ] add all test feeders as JLD2
 

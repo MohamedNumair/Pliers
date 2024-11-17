@@ -34,6 +34,7 @@ function plot_network_tree(eng::Dict{String,Any}; makie_backend=WGLMakie)
     makie_backend.activate!()
     PowerModelsDistribution.transform_loops!(eng)
     eng_sym = convert_keys_to_symbols(deepcopy(eng))
+    #network_graph = MetaDiGraph()
     network_graph = MetaDiGraph()
 
     # add bus keys as :bus_id
@@ -74,10 +75,14 @@ function plot_network_tree(eng::Dict{String,Any}; makie_backend=WGLMakie)
 
     return graphplot(network_graph;
                                     layout = GraphMakie.Buchheim(),
-                                    nlabels = [string.(network_graph[i, :bus_id]) for i in 1:nv(network_graph)],
+                                    #nlabels = [string.(network_graph[i, :bus_id]) for i in 1:nv(network_graph)],
+                                    nlabels = nothing,
                                     #ilabels=[network_graph[i, :bus_id] for i in 1:nv(network_graph)],
                                     #elabels=[" $(string(get_prop(network_graph, e, :line_id))), $(string(get_prop(network_graph, e, :length))) m " for e in edges(network_graph)],
                                     #arrow_shift=:center
+                                    arrow_show = false,
+                                    tangents =((0,-1),(0,-1)),
+                                    #edge_plottype=:beziersegments
                                     )
 
 end

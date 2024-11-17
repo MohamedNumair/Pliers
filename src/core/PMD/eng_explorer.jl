@@ -13,7 +13,7 @@ This function extracts various components from the `eng` dictionary, such as bus
 # Example
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis 
+using Pliers 
 eng= PowerModelsDistribution.parse_file("example.dss")
 eng_report(eng)
 ```
@@ -55,7 +55,7 @@ This function extracts the buses from the `eng` dictionary and creates a DataFra
 # Example
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis 
+using Pliers 
 eng= PowerModelsDistribution.parse_file("example.dss")
 buses_table(eng)
 ```
@@ -99,8 +99,8 @@ This function extracts bus information from the provided engineering data dictio
 # Example
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis 
-eng= PowerDistributionAnalysis.parse_file("example.dss")
+using Pliers 
+eng= Pliers.parse_file("example.dss")
 buses_table(eng, bus -> bus["bus_id"] =="sourcebus")
 
 ````
@@ -152,7 +152,7 @@ This function extracts the lines from the `eng` dictionary and creates a DataFra
 # Example
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis
+using Pliers
 eng= PowerModelsDistribution.parse_file("example.dss")
 lines_table(eng)
 ```
@@ -208,7 +208,7 @@ This function extracts line information from the provided engineering data dicti
 # Example
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis
+using Pliers
 eng= PowerModelsDistribution.parse_file("example.dss")
 lines_table(eng, line -> line["length"] > 0.75)
 ```
@@ -269,7 +269,7 @@ This function extracts the loads from the `eng` dictionary and creates a DataFra
 
 ```julia
 using PowerModelsDistribution
-using PowerDistributionAnalysis
+using Pliers
 eng= PowerModelsDistribution.parse_file("example.dss")
 loads_table(eng)
 ```
