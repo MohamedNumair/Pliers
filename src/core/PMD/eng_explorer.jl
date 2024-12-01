@@ -61,23 +61,25 @@ buses_table(eng)
 ```
 """  
 function buses_table(eng::Dict{String, Any})
-    buses = haskey(eng, "bus") ? eng["bus"] : nothing
-    buses_df = DataFrame(   bus_id = String[],
-    status = String[],
-    terminals = Array{Int64, 1}[],
-    rg = Array{Float64, 1}[],
-    xg = Array{Float64, 1}[],
-    grounded = Array{Int64, 1}[]
-    )
+    buses = haskey(eng, "bus") ? eng["bus"] : error("No buses found in the engineering data check the data model has \"bus\" key") 
+    buses_df = DataFrame(   
+                            bus_id = String[],
+                            status = String[],
+                            terminals = Array{Int64, 1}[],
+                            rg = Array{Float64, 1}[],
+                            xg = Array{Float64, 1}[],
+                            grounded = Array{Int64, 1}[]
+                        )
     
     for (bus_id, bus) in buses
-        push!(buses_df, (   bus_id,
-        string(get(bus,"status","")),
-        get(bus, "terminals", Int[]),
-        get(bus, "rg", Float64[]),
-        get(bus, "xg", Float64[]),
-        get(bus, "grounded", Int[])
-        ))
+        push!(buses_df, (   
+                            bus_id,
+                            string(get(bus,"status","")),
+                            get(bus, "terminals", Int[]),
+                            get(bus, "rg", Float64[]),
+                            get(bus, "xg", Float64[]),
+                            get(bus, "grounded", Int[])
+                        ))
     end
     header("Buses Table ($(nrow(buses_df)) buses)")
     pretty_table(sort!(buses_df))
@@ -111,23 +113,31 @@ buses_table(eng, bus -> haskey(bus, "grounded") && bus["grounded"]==[4])
 ```
 """
 function buses_table(eng::Dict{String,Any}, condition::Function)
-    buses = haskey(eng, "bus") ? eng["bus"] : nothing
+    buses = haskey(eng, "bus") ? eng["bus"] : error("No buses found in the engineering data check the data model has \"bus\" key") 
     # adding the bus_id to the bus dictionary so it can be filtered by name
     for (bus_id, bus) in buses
         bus["bus_id"] = bus_id
     end
     
-    buses_df = DataFrame(   bus_id = String[],
-    status = String[],
-    terminals = Array{Int64, 1}[],
-    rg = Array{Float64, 1}[],
-    xg = Array{Float64, 1}[],
-    grounded = Array{Int64, 1}[]
-    )
+    buses_df = DataFrame(   
+                            bus_id = String[],
+                            status = String[],
+                            terminals = Array{Int64, 1}[],
+                            rg = Array{Float64, 1}[],
+                            xg = Array{Float64, 1}[],
+                            grounded = Array{Int64, 1}[]
+                        )
     
     for (bus_id, bus) in buses
         if condition(bus)
-            push!(buses_df, (bus_id,  string(bus["status"]), bus["terminals"], bus["rg"], bus["xg"], bus["grounded"]))
+            push!(buses_df, (   
+                                bus_id,
+                                string(get(bus,"status","")),
+                                get(bus, "terminals", Int[]),
+                                get(bus, "rg", Float64[]),
+                                get(bus, "xg", Float64[]),
+                                get(bus, "grounded", Int[])
+                            ))
         end
     end
     header("Filtered Buses Table ($(nrow(buses_df)) buses)")
@@ -158,33 +168,34 @@ lines_table(eng)
 ```
 """
 function lines_table(eng::Dict{String, Any})
-    lines = haskey(eng, "line") ? eng["line"] : nothing
+    lines = haskey(eng, "line") ? eng["line"] : error("No lines found in the engineering data check the data model has \"line\" key") 
     
-    lines_df = DataFrame(   line_id = String[],
-    source_id = String[],
-    f_bus = String[],
+    lines_df = DataFrame(   
+                            line_id = String[],
+                            source_id = String[],
+                            f_bus = String[],
                             f_connections = Array{Int64, 1}[],
                             t_bus = String[],
                             t_connections = Array{Int64, 1}[],
                             length = Float64[],
                             linecode = String[],
                             status = String[],
-                            )
+                        )
                             
-                            for (line_id, line) in lines
-                                
-        push!(lines_df, (   line_id,
-        get(line, "source_id", ""),
-        get(line, "f_bus", ""),
-        get(line, "f_connections", Int[]),
-        get(line, "t_bus", ""),
-        get(line, "t_connections", Int[]),
-        get(line, "length", 0.0),
-        get(line, "linecode", ""),
-        string(get(line, "status", "")),
-        )
-        )
-        
+    for (line_id, line) in lines
+                            
+    push!(lines_df, (   
+                        line_id,
+                        get(line, "source_id", ""),
+                        get(line, "f_bus", ""),
+                        get(line, "f_connections", Int[]),
+                        get(line, "t_bus", ""),
+                        get(line, "t_connections", Int[]),
+                        get(line, "length", 0.0),
+                        get(line, "linecode", ""),
+                        string(get(line, "status", "")),
+                    ))
+    
     end
     header("Lines Table ($(nrow(lines_df)) lines)")
     pretty_table(sort!(lines_df, [:f_bus, :t_bus, :line_id]))
@@ -215,26 +226,28 @@ lines_table(eng, line -> line["length"] > 0.75)
 """
 
 function lines_table(eng::Dict{String,Any}, condition::Function)
-    lines = haskey(eng, "line") ? eng["line"] : nothing
+    lines = haskey(eng, "line") ? eng["line"] : error("No lines found in the engineering data check the data model has \"line\" key") 
     # adding the line_id to the line dictionary so it can be filtered by name
     for (line_id, line) in lines
         line["line_id"] = line_id
     end
     
-    lines_df = DataFrame(   line_id = String[],
-    source_id = String[],
-    f_bus = String[],
-    f_connections = Array{Int64, 1}[],
-    t_bus = String[],
-    t_connections = Array{Int64, 1}[],
-    length = Float64[],
-    linecode = String[],
-    status = String[],
-    )
+    lines_df = DataFrame(   
+                            line_id = String[],
+                            source_id = String[],
+                            f_bus = String[],
+                            f_connections = Array{Int64, 1}[],
+                            t_bus = String[],
+                            t_connections = Array{Int64, 1}[],
+                            length = Float64[],
+                            linecode = String[],
+                            status = String[],
+                        )
     
     for (line_id, line) in lines
         if condition(line)
-            push!(lines_df, (   line_id,
+            push!(lines_df, (   
+                                line_id,
                                 get(line, "source_id", ""),
                                 get(line, "f_bus", ""),
                                 get(line, "f_connections", Int[]),
@@ -243,9 +256,8 @@ function lines_table(eng::Dict{String,Any}, condition::Function)
                                 get(line, "length", 0.0),
                                 get(line, "linecode", ""),
                                 string(get(line, "status", "")),
-                                )
-                                )
-                            end
+                            ))
+        end
     end
     header("Filtered Lines Table ($(nrow(lines_df)) lines)")
     pretty_table(sort!(lines_df, [:f_bus, :t_bus, :line_id]))
@@ -275,22 +287,24 @@ loads_table(eng)
 ```
 """
 function loads_table(eng::Dict{String, Any})
-    loads = haskey(eng, "load") ? eng["load"] : nothing
-    loads_df = DataFrame(  load_id = String[],
-    source_id = String[],
-    bus = String[],
-    connections = Array{Int64, 1}[],
-    vm_nom = Float64[],
-    pd_nom = Array{Float64, 1}[],
-    qd_nom = Array{Float64, 1}[],
+    loads = haskey(eng, "load") ? eng["load"] : error("No loads found in the engineering data check the data model has \"load\" key") 
+    loads_df = DataFrame(   
+                            load_id = String[],
+                            source_id = String[],
+                            bus = String[],
+                            connections = Array{Int64, 1}[],
+                            vm_nom = Float64[],
+                            pd_nom = Array{Float64, 1}[],
+                            qd_nom = Array{Float64, 1}[],
                             configuration = String[],
                             model = String[],
                             dispatchable = String[],
                             status = String[],
                         )
 
-                        for (load_id, load) in loads
-                            push!(loads_df, (   load_id,
+    for (load_id, load) in loads
+        push!(loads_df, (   
+                            load_id,
                             get(load, "source_id", ""),
                             get(load, "bus", ""),
                             get(load, "connections", Vector{Int64}[]),
@@ -301,7 +315,7 @@ function loads_table(eng::Dict{String, Any})
                             string(get(load, "model","")),
                             string(get(load, "dispatchable", "")),
                             string(get(load, "status", "")),
-                            ))
+                        ))
                         end
     header("Loads Table ($(nrow(loads_df)) loads)")
     pretty_table(sort!(loads_df))
@@ -330,13 +344,14 @@ This function extracts load information from the provided engineering data dicti
     ```
 """
 function loads_table(eng::Dict{String,Any}, condition::Function)
-    loads = haskey(eng, "load") ? eng["load"] : nothing
+    loads = haskey(eng, "load") ? eng["load"] : error("No loads found in the engineering data check the data model has \"load\" key") 
     # adding the load_id to the load dictionary so it can be filtered by name
     for (load_id, load) in loads
         load["load_id"] = load_id
     end
 
-    loads_df = DataFrame(  load_id = String[],
+    loads_df = DataFrame(  
+                            load_id = String[],
                             source_id = String[],
                             bus = String[],
                             connections = Array{Int64, 1}[],
@@ -351,7 +366,8 @@ function loads_table(eng::Dict{String,Any}, condition::Function)
 
     for (load_id, load) in loads
         if condition(load)
-            push!(loads_df, (   load_id,
+            push!(loads_df, (   
+                                load_id,
                                 get(load, "source_id", ""),
                                 get(load, "bus", ""),
                                 get(load, "connections", Vector{Int64}[]),
@@ -376,7 +392,7 @@ end
 
 
 function linecodes_table(eng::Dict{String, Any})
-    linecodes = haskey(eng, "linecode") ? eng["linecode"] : nothing
+    linecodes = haskey(eng, "linecode") ? eng["linecode"] : error("No linecodes found in the engineering data check the data model has \"linecode\" key") 
     
     
     header("Linecodes Table ($(length(linecodes)) linecodes)")
@@ -411,3 +427,32 @@ function linecodes_table(eng::Dict{String, Any})
 end
 
 
+
+## 
+
+# Here I just want to add the ability for the above tables to be called even if the user passes a `.dss` file path instead of the parsed dictionary
+
+
+macro define_table_from_file(name)
+    quote
+        """
+        Processes a DSS file and calls the function with the parsed data.
+
+        # Arguments
+        - `dss::String`: The path to the DSS file to be processed.
+
+        # Returns
+        Whatever function returns when called with parsed data.
+
+        """
+        function $(esc(name))(dss::String)
+            eng = PowerModelsDistribution.parse_file(dss)
+            $(esc(name))(eng)
+        end
+    end
+end
+
+@define_table_from_file buses_table
+@define_table_from_file lines_table
+@define_table_from_file loads_table 
+@define_table_from_file linecodes_table

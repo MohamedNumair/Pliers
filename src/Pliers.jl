@@ -17,9 +17,15 @@ using CairoMakie
 using WGLMakie
 using GLMakie
 using GraphMakie
+using GeoMakie
+using Proj
+using Tyler
+using Tyler.TileProviders
+using Tyler.MapTiles
+using Tyler.Extents
 
 # data analysis packages
-import Statistics
+using Statistics
 using LinearAlgebra
 using Graphs
 using MetaGraphs
@@ -30,8 +36,8 @@ using MetaGraphs
 # using Random  
 
 # Power Distribution Tools
-import PowerModelsDistribution
-# import PowerModelsDistributionStateEstimation
+using PowerModelsDistribution
+#using PowerModelsDistributionStateEstimation
 
 
 # pkg const
@@ -52,6 +58,8 @@ const _MK = Makie
 const _CMK = CairoMakie
 const _WGLMK = WGLMakie
 const _GLMK = GLMakie
+
+# https://github.com/PumasAI/SummaryTables.jl?  # SummaryTable.jl is amazing in outputting tables right away
 
 # data analysis packages
 const _STAT = Statistics
