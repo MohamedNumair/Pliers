@@ -79,6 +79,7 @@ include("core/styles.jl")
 include("core/utils.jl")
 include("core/PMD/results_explorer.jl")
 include("core/PMD/eng_explorer.jl")
+include("core/PMD/math_explorer.jl")
 include("core/PMD/network_plotting.jl")
 include("core/export.jl")
 
