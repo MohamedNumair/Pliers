@@ -405,14 +405,7 @@ function linecodes_table(eng::Dict{String, Any})
         for (key, matrix) in linecode
             sub_sub_header("$(linecode_id) - ($key) :")
             try
-            isa(matrix, Array) || error("The $key is not a matrix")
-            mx = deepcopy(matrix)
-            mx = hcat([range(1, size(mx,1))...], mx)
-            pretty_table(mx,
-                         header=[range(0, size(mx,2)-1)...],
-                         highlighters=(highlight_row_label, highlight_diagonal, highlight_off_diagonal),
-                         formatters    = ft_printf("%1.0f", 1:1),
-                         )
+                _pretty_diag_matrix(matrix::Matrix)
             catch e 
                 error_text("parsing the $key it might not be a matrix: $(e)")
             end

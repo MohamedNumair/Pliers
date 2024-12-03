@@ -10,8 +10,9 @@
   - [x] plot a tree of a PMD ENGINEERING Model 
   - [x] plot a real graph if file has coordinates
   - [ ] explore MATHEMATICAL model summary
-  - [ ] explore MATHEMATICAL model details
-  - [ ] filter elements MATHEMATICAL model details with a specific rule
+  - [x] explore MATHEMATICAL model details
+  - [x] filter elements MATHEMATICAL model details with a specific rule
+  - [ ] missing elements in MATHEMATICAL model [transformer, switch and shunt]
   - [ ] plot a tree of a PMD MATHEMATICAL Model
   - [ ] plot a real graph if file has coordinates
   - [ ] explore SIMULATION RESULTS model summary

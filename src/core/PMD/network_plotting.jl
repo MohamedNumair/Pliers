@@ -43,7 +43,7 @@ This function performs the following steps:
 # Errors
 - Throws an error if `sourcebus` is not found in the bus data.
 """
-function create_network_graph(eng::Dict{String,Any})
+function create_graph(eng::Dict{String,Any})
     PowerModelsDistribution.transform_loops!(eng)
     eng_sym = convert_keys_to_symbols(deepcopy(eng))
     network_graph = MetaDiGraph()
@@ -86,7 +86,7 @@ function create_network_graph(eng::Dict{String,Any})
     return network_graph
 end
 
-function create_network_graph(eng::Dict{String,Any}, fallback_layout=GraphMakie.Buchheim()) 
+function create_network_graph(eng::Dict{String,Any}, fallback_layout) 
     PowerModelsDistribution.transform_loops!(eng)
     eng_sym = convert_keys_to_symbols(deepcopy(eng))
     network_graph = MetaDiGraph()
@@ -457,8 +457,9 @@ function plot_network_tree(
                             kwargs...
                             )    
     # Create the network meta graph 
-   network_graph = create_network_graph(eng)
-
+   network_graph = create_graph(eng)
+   println(network_graph)
+    @warn typeof(network_graph)  
     # Handle labels if required
     nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
     elabels = show_edge_labels ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : nothing
@@ -579,12 +580,26 @@ function plot_network_map(
     nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
     elabels = show_edge_labels ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : nothing
 
+    if !isa(GraphLayout, Function)
+        @warn "You are attempting to plot a network without coordinates on the map, that is not possible, instead the network tree graph will be plotted"
+        return network_graph_plot(
+                                    network_graph;
+                                    layout=GraphMakie.Buchheim(),
+                                    show_node_labels=show_node_labels,
+                                    nlabels=nlabels, 
+                                    show_edge_labels=show_edge_labels,
+                                    elabels=elabels,
+                                    kwargs...
+                                )
+    else
+        @info "Plotting network map with coordinates on the map -- it is your responsibility to ensure the coordinates are at the correct place"
+        return network_graph_map_plot(
+                                        network_graph, GraphLayout;
+                                        nlabels=nlabels,
+                                        elabels=elabels,
+                                        kwargs...
+                                    )
+    
+    end
 
-
-return network_graph_map_plot(
-                                network_graph, GraphLayout;
-                                nlabels=nlabels,
-                                elabels=elabels,
-                                kwargs...
-                            )
 end

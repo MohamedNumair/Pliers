@@ -142,3 +142,16 @@ function default_index_value(v::Integer, prop::Symbol, index_values::Set{}; excl
     return val
 end
 
+
+
+"""Print a matrix as a pretty table with highlighted diagonal and off-diagonal elements"""
+function _pretty_diag_matrix(mat::Matrix)
+    isa(mat, Array) || error("The $key is not a matrix")
+            mx = deepcopy(mat)
+            mx = hcat([range(1, size(mx,1))...], mx)
+            pretty_table(mx,
+                         header=[range(0, size(mx,2)-1)...],
+                         highlighters=(highlight_row_label, highlight_diagonal, highlight_off_diagonal),
+                         formatters    = ft_printf("%1.0f", 1:1),
+                         )
+end
