@@ -1,8 +1,3 @@
-
-
-
-
-
 function create_network_graph(data::Dict{String,Any}, fallback_layout)
     _is_eng(data) ? create_network_graph_eng(data, fallback_layout) : create_network_graph_math(data, fallback_layout)
 end
@@ -18,33 +13,20 @@ function create_network_graph_eng(eng::Dict{String,Any}, fallback_layout)
     lons = []
     lats = []
     
-    # Add bus keys as :bus_id and collect coordinates if present
+    # Add bus keys as :bus_id and collect coordinates if present # and enrich the buses with loads and shunts connected to them
     for (b, bus) in eng_sym[:bus]
         bus[:bus_id] = b
-        if haskey(bus, :lon) && haskey(bus, :lat)
-            push!(lons, bus[:lon])
-            push!(lats, bus[:lat])
-        end
-    end    
-    
-    for (l, line) in eng_sym[:line]
-        line[:line_id] = l
-    end
-    
-
-    # enriching buses with loads and shunts connected to them 
-
-    for (_,bus) in eng_sym[:bus]
         bus[:loads] = []
         bus[:shunts] = []
+        # attach loads
         if haskey(eng_sym, :load)
-        for (l,load) in eng_sym[:load]
+        for (_,load) in eng_sym[:load]
             if Symbol(load[:bus]) == bus[:bus_id]
                 push!(bus[:loads], load)
             end
         end
         end
-        
+        # attach shunts
         if haskey(eng_sym, :shunt)
         for (_,shunt) in eng_sym[:shunt]
             if Symbol(shunt[:bus]) == bus[:bus_id]
@@ -53,17 +35,30 @@ function create_network_graph_eng(eng::Dict{String,Any}, fallback_layout)
         end
         end
 
-    end
+        # attach gens
+        if haskey(eng_sym, :voltage_source)
+        for (_,voltage_source) in eng_sym[:voltage_source]
+            if Symbol(voltage_source[:bus]) == bus[:bus_id]
+                bus[:voltage_sources] = voltage_source
+            end
+        end
+        end
 
 
-    # enriching lines with the linecodes
-
-    for (_, line) in eng_sym[:line]
+        if haskey(bus, :lon) && haskey(bus, :lat)
+            push!(lons, bus[:lon])
+            push!(lats, bus[:lat])
+        end
+    end    
+    
+    for (l, line) in eng_sym[:line]
+        line[:line_id] = l
         line[:linecodes] = eng_sym[:linecode][Symbol(line[:linecode])]
+
     end
 
     
-    # Determine source coordinates if available
+    # Determine source coordinates if available # and enrich the lines with the linecodes details
     lon_s, lat_s = nothing, nothing
     if length(lons) > 0
         source_line = findfirst(line -> line[:f_bus] == "sourcebus", eng_sym[:line])
@@ -129,18 +124,50 @@ function create_network_graph_math(math::Dict{String,Any}, fallback_layout)
     lons = []
     lats = []
     
-    # Add bus keys as :bus_id and collect coordinates if present
+    # Add bus keys as :bus_id and collect coordinates if present # and enrich the buses with loads and shunts connected to them
     for (b, bus) in math_sym[:bus]
         bus[:bus_id] = b
+        bus[:loads] = []
+        bus[:shunts] = []
+        if haskey(math_sym, :load)
+        for (l,load) in math_sym[:load]
+            if Symbol(load[:load_bus]) == bus[:bus_id]
+                push!(bus[:loads], load)
+            end
+        end
+        end
+
+        if haskey(math_sym, :shunt)
+        for (_,shunt) in math_sym[:shunt]
+            if Symbol(shunt[:shunt_bus]) == bus[:bus_id]
+                push!(bus[:shunts], shunt)
+            end
+        end
+        end
+
+        # gen 
+
+        if haskey(math_sym, :gen)
+        for (_,gen) in math_sym[:gen]
+            if Symbol(gen[:gen_bus]) == bus[:bus_id]
+                bus[:gens] = gen
+            end
+        end
+        end
+
+
         if haskey(bus, :lon) && haskey(bus, :lat)
             push!(lons, bus[:lon])
             push!(lats, bus[:lat])
         end
     end    
     
+    # Add branch keys as :branch_id 
     for (l, branch) in math_sym[:branch]
         branch[:branch_id] = l
+
     end
+
 
     # Determine source coordinates if available
     lon_s, lat_s = nothing, nothing

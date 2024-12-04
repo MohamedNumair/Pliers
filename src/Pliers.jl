@@ -17,7 +17,6 @@ using CairoMakie
 using WGLMakie
 using GLMakie
 using GraphMakie
-import GraphMakie: labels_theme    
 using GeoMakie
 using Proj
 using Tyler

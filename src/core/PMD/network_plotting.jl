@@ -337,6 +337,12 @@ function plot_network_tree(
     nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
     elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, :branch_id)) for e in edges(network_graph)] : nothing 
 
+    # change the symbol for loaded buses
+
+     
+
+
+
     # plot and return the network 
    return network_graph_plot(
                                 network_graph;
