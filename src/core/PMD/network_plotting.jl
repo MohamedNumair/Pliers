@@ -16,210 +16,101 @@
 # the function will return the plot object
 
 
+"""
+    build_network_graph(data::Dict{String,Any}, source_key, edge_key) -> MetaDiGraph
+"""
+function build_network_graph(data::Dict{Symbol,Any}, source_key::Symbol, edge_key::Symbol)
+    graph = MetaDiGraph()
+
+    # Add vertices (buses)
+    for (b, bus) in data[:bus]
+        bus[:bus_id] = b
+        add_vertex!(graph, bus)
+    end
+
+    # Use bus_id as the indexing property
+    set_indexing_prop!(graph, :bus_id)
+
+    # Add edges (lines or branches)
+    for (e, edge) in data[edge_key]
+        f_bus = Symbol(edge[:f_bus])
+        t_bus = Symbol(edge[:t_bus])
+        f_vertex = graph[f_bus, :bus_id]
+        t_vertex = graph[t_bus, :bus_id]
+        add_edge!(graph, f_vertex, t_vertex, edge)
+    end
+
+    return graph
+end
 
 """
-    create_network_graph(eng::Dict{String,Any}) -> MetaDiGraph
-
-Creates a network graph from the given engineering model dictionary `eng`.
-
-# Arguments
-- `eng::Dict{String,Any}`: A dictionary representing the engineering model.
-
-# Returns
-- `MetaDiGraph`: A graph object representing the network.
-
-# Description
-This function performs the following steps:
-1. Transforms loops in the engineering model using `PowerModelsDistribution.transform_loops!`.
-2. Converts the keys in the engineering model dictionary to symbols.
-3. Creates an empty `MetaDiGraph` object.
-4. Adds bus keys as `:bus_id` to each bus in the engineering model.
-5. Adds line keys as `:line_id` to each line in the engineering model.
-6. Adds the `sourcebus` as the root vertex in the graph.
-7. Adds the remaining buses as vertices in the graph.
-8. Sets `:bus_id` as the indexing property for the graph.
-9. Adds edges between buses based on the `f_bus` and `t_bus` indices in the lines.
-
-# Errors
-- Throws an error if `sourcebus` is not found in the bus data.
+    calculate_layout(data::Dict{Symbol,Any}, fallback_layout) -> Function
 """
+function calculate_layout(data::Dict{Symbol,Any}, fallback_layout)
+    layout_vector = []
 
-
-function create_network_graph(data::Dict{String,Any}, fallback_layout)
-    if haskey(data, "data_model")
-        if data["data_model"] == PowerModelsDistribution.ENGINEERING
-            return create_network_graph_eng(data, fallback_layout)
-        elseif data["data_model"] == PowerModelsDistribution.MATHEMATICAL
-            return create_network_graph_math(data, fallback_layout)
-        else
-            error("Invalid data model found in the provided model dictionary. it has to be either ENGINEERING or MATHEMATICAL")
+    # Collect coordinates for layout
+    for (b, bus) in data[:bus]
+        if haskey(bus, :lon) && haskey(bus, :lat)
+            push!(layout_vector, (bus[:lon], bus[:lat]))
         end
+    end
+
+    # Determine layout function
+    if length(layout_vector) > 1
+        return _ -> layout_vector
     else
+        @warn "No coordinates found; using fallback layout."
+        return fallback_layout
+    end
+end
+
+"""
+    create_network_graph(data::Dict{String,Any}, fallback_layout) -> Tuple{MetaDiGraph, Function}
+"""
+function create_network_graph(data::Dict{String,Any}, fallback_layout)
+    if !haskey(data, "data_model")
         error("No data model found in the provided model dictionary.")
     end
-end
 
-"""
-    create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) -> MetaDiGraph, Function
-"""
-function create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) 
-    PowerModelsDistribution.transform_loops!(eng)
-    eng_sym = convert_keys_to_symbols(deepcopy(eng))
-    network_graph = MetaDiGraph()
-
-    lons = []
-    lats = []
-    
-    # Add bus keys as :bus_id and collect coordinates if present
-    for (b, bus) in eng_sym[:bus]
-        bus[:bus_id] = b
-        if haskey(bus, :lon) && haskey(bus, :lat)
-            push!(lons, bus[:lon])
-            push!(lats, bus[:lat])
-        end
-    end    
-    
-    for (l, line) in eng_sym[:line]
-        line[:line_id] = l
-    end
-
-    # Determine source coordinates if available
-    lon_s, lat_s = nothing, nothing
-    if length(lons) > 0
-        source_line = findfirst(line -> line[:f_bus] == "sourcebus", eng_sym[:line])
-        if source_line !== nothing
-            lon_s = eng_sym[:bus][Symbol(eng_sym[:line][source_line][:t_bus])][:lon]
-            lat_s = eng_sym[:bus][Symbol(eng_sym[:line][source_line][:t_bus])][:lat]
-        end
-    end
-    
-    layouting_vector = []
-
-    # Add `sourcebus` as the root
-    if haskey(eng_sym[:bus], :sourcebus)
-        add_vertex!(network_graph, eng_sym[:bus][:sourcebus])
-        if length(lons) > 0 && lon_s !== nothing && lat_s !== nothing
-            push!(layouting_vector, (lon_s, lat_s))
-        end
-    else 
-        error("sourcebus not found in the bus data. Please add sourcebus to the bus data.")
-    end
-
-    # Add the rest of the buses
-    for (b, bus) in eng_sym[:bus]
-        if bus[:bus_id] != :sourcebus
-            add_vertex!(network_graph, bus)
-            if haskey(bus, :lon) && haskey(bus, :lat)
-                push!(layouting_vector, (bus[:lon], bus[:lat]))
-            end
-        end
-    end
-
-    # Use bus_id as the indexing property
-    set_indexing_prop!(network_graph, :bus_id)
-
-    # Add edges based on f_bus and t_bus
-    for (l, line) in eng_sym[:line]
-        f_bus = Symbol(line[:f_bus])
-        t_bus = Symbol(line[:t_bus])
-        f_vertex = network_graph[f_bus, :bus_id]
-        t_vertex = network_graph[t_bus, :bus_id]
-        add_edge!(network_graph, f_vertex, t_vertex, line)
-    end
-    
-    # Decide on the layout
-    if length(layouting_vector) > 1
-        GraphLayout = _ -> layouting_vector
+    if data["data_model"] == PowerModelsDistribution.ENGINEERING
+        PowerModelsDistribution.transform_loops!(data)
+        data_sym = convert_keys_to_symbols(deepcopy(data))
+        graph = build_network_graph(data_sym, :sourcebus, :line)
+        layout = calculate_layout(data_sym, fallback_layout)
+    elseif data["data_model"] == PowerModelsDistribution.MATHEMATICAL
+        data_sym = convert_keys_to_symbols(deepcopy(data))
+        graph = build_network_graph(data_sym, :virtual_bus, :branch)
+        layout = calculate_layout(data_sym, fallback_layout)
     else
-        @warn "Note there were no coordinates found for plotting, the fallback (e.g. tree layout) layout will be used"
-        GraphLayout = fallback_layout
+        error("Invalid data model found. Must be either ENGINEERING or MATHEMATICAL.")
     end
 
-    return network_graph, GraphLayout
+    return graph, layout
 end
 
 
 """
-    create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) -> MetaDiGraph, Function
+    create_network_graph(data::Dict{String,Any}, fallback_layout) -> Tuple{MetaDiGraph, Function}
 """
-function create_network_graph_math(math::Dict{String,Any}, fallback_layout) 
-    math_sym = convert_keys_to_symbols(deepcopy(math))
-    network_graph = MetaDiGraph()
-
-    lons = []
-    lats = []
-    
-    # Add bus keys as :bus_id and collect coordinates if present
-    for (b, bus) in math_sym[:bus]
-        bus[:bus_id] = b
-        if haskey(bus, :lon) && haskey(bus, :lat)
-            push!(lons, bus[:lon])
-            push!(lats, bus[:lat])
-        end
-    end    
-    
-    for (l, branch) in math_sym[:branch]
-        branch[:branch_id] = l
+function create_network_graph(data::Dict{String,Any})
+    if !haskey(data, "data_model")
+        error("No data model found in the provided model dictionary.")
     end
 
-    # Determine source coordinates if available
-    lon_s, lat_s = nothing, nothing
-    if length(lons) > 0
-        source_branch = findfirst(branch -> branch[:f_bus] == "sourcebus", math_sym[:branch])
-        if source_branch !== nothing
-            lon_s = math_sym[:bus][Symbol(math_sym[:branch][source_branch][:t_bus])][:lon]
-            lat_s = math_sym[:bus][Symbol(math_sym[:branch][source_branch][:t_bus])][:lat]
-        end
-    end
-    
-    layouting_vector = []
-
-    # Add `sourcebus` as the root
-    virtual_bus = findfirst(bus -> contains(bus[:name], "virtual_bus.voltage_source.source"), math_sym[:bus])
-
-    display(virtual_bus)
-    if haskey(math_sym[:bus], virtual_bus)
-        add_vertex!(network_graph, math_sym[:bus][virtual_bus])
-        if length(lons) > 0 && lon_s !== nothing && lat_s !== nothing
-            push!(layouting_vector, (lon_s, lat_s))
-        end
-    else 
-        error("sourcebus not found in the bus data. Please add sourcebus to the bus data.")
-    end
-
-    # Add the rest of the buses
-    for (b, bus) in math_sym[:bus]
-        if bus[:bus_id] != virtual_bus
-            add_vertex!(network_graph, bus)
-            if haskey(bus, :lon) && haskey(bus, :lat)
-                push!(layouting_vector, (bus[:lon], bus[:lat]))
-            end
-        end
-    end
-
-    # Use bus_id as the indexing property
-    set_indexing_prop!(network_graph, :bus_id)
-
-    # Add edges based on f_bus and t_bus
-    for (l, branch) in math_sym[:branch]
-        f_bus = Symbol(branch[:f_bus])
-        t_bus = Symbol(branch[:t_bus])
-        f_vertex = network_graph[f_bus, :bus_id]
-        t_vertex = network_graph[t_bus, :bus_id]
-        add_edge!(network_graph, f_vertex, t_vertex, branch)
-    end
-    
-    # Decide on the layout
-    if length(layouting_vector) > 1
-        GraphLayout = _ -> layouting_vector
+    if data["data_model"] == PowerModelsDistribution.ENGINEERING
+        PowerModelsDistribution.transform_loops!(data)
+        data_sym = convert_keys_to_symbols(deepcopy(data))
+        graph = build_network_graph(data_sym, :sourcebus, :line)
+    elseif data["data_model"] == PowerModelsDistribution.MATHEMATICAL
+        data_sym = convert_keys_to_symbols(deepcopy(data))
+        graph = build_network_graph(data_sym, :virtual_bus, :branch)
     else
-        @warn "Note there were no coordinates found for plotting, the fallback (e.g. tree layout) layout will be used"
-        GraphLayout = fallback_layout
+        error("Invalid data model found. Must be either ENGINEERING or MATHEMATICAL.")
     end
 
-    return network_graph, GraphLayout
+    return graph
 end
-
 
 """
     network_graph_plot(network_graph::MetaDiGraph; layout=GraphMakie.Buchheim(), figure_size=(1000, 1200), node_color=:black, node_size=automatic, node_marker=automatic, node_strokewidth=automatic, show_node_labels=false, show_edge_labels=false, edge_color=:black, elabels_color=:black, elabels_fontsize=10, tangents=((0,-1),(0,-1)), arrow_show=false, arrow_marker='➤', arrow_size=50, arrow_shift=0.5)
