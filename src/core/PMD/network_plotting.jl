@@ -43,50 +43,26 @@ This function performs the following steps:
 # Errors
 - Throws an error if `sourcebus` is not found in the bus data.
 """
-function create_graph(eng::Dict{String,Any})
-    PowerModelsDistribution.transform_loops!(eng)
-    eng_sym = convert_keys_to_symbols(deepcopy(eng))
-    network_graph = MetaDiGraph()
 
-    # Add bus keys as :bus_id
-    for (b, bus) in eng_sym[:bus]
-        bus[:bus_id] = b
-    end    
 
-    for (l, line) in eng_sym[:line]
-        line[:line_id] = l
-    end
-
-    # Add `sourcebus` first to make it the root
-    if haskey(eng_sym[:bus], :sourcebus)
-        add_vertex!(network_graph, eng_sym[:bus][:sourcebus])
-    else 
-        error("sourcebus not found in the bus data. It is needed to have the root bus with key sourcebus in the ENGINEERING model. Please add sourcebus to the bus data.")
-    end
-
-    # Add the rest of the buses
-    for (b, bus) in eng_sym[:bus]
-        if bus[:bus_id] != :sourcebus
-            add_vertex!(network_graph, bus)
+function create_network_graph(data::Dict{String,Any}, fallback_layout)
+    if haskey(data, "data_model")
+        if data["data_model"] == PowerModelsDistribution.ENGINEERING
+            return create_network_graph_eng(data, fallback_layout)
+        elseif data["data_model"] == PowerModelsDistribution.MATHEMATICAL
+            return create_network_graph_math(data, fallback_layout)
+        else
+            error("Invalid data model found in the provided model dictionary. it has to be either ENGINEERING or MATHEMATICAL")
         end
+    else
+        error("No data model found in the provided model dictionary.")
     end
-
-    # Use bus_id as the indexing property
-    set_indexing_prop!(network_graph, :bus_id)
-
-    # Add edges based on the f_bus and t_bus bus_id indices
-    for (l, line) in eng_sym[:line]
-        f_bus = Symbol(line[:f_bus])
-        t_bus = Symbol(line[:t_bus])
-        f_vertex = network_graph[f_bus, :bus_id]
-        t_vertex = network_graph[t_bus, :bus_id]
-        add_edge!(network_graph, f_vertex, t_vertex, line)
-    end
-
-    return network_graph
 end
 
-function create_network_graph(eng::Dict{String,Any}, fallback_layout) 
+"""
+    create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) -> MetaDiGraph, Function
+"""
+function create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) 
     PowerModelsDistribution.transform_loops!(eng)
     eng_sym = convert_keys_to_symbols(deepcopy(eng))
     network_graph = MetaDiGraph()
@@ -155,13 +131,94 @@ function create_network_graph(eng::Dict{String,Any}, fallback_layout)
     if length(layouting_vector) > 1
         GraphLayout = _ -> layouting_vector
     else
-        @warn "No coordinates found for plotting, using fallback layout."
+        @warn "Note there were no coordinates found for plotting, the fallback (e.g. tree layout) layout will be used"
         GraphLayout = fallback_layout
     end
 
     return network_graph, GraphLayout
 end
 
+
+"""
+    create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) -> MetaDiGraph, Function
+"""
+function create_network_graph_math(math::Dict{String,Any}, fallback_layout) 
+    math_sym = convert_keys_to_symbols(deepcopy(math))
+    network_graph = MetaDiGraph()
+
+    lons = []
+    lats = []
+    
+    # Add bus keys as :bus_id and collect coordinates if present
+    for (b, bus) in math_sym[:bus]
+        bus[:bus_id] = b
+        if haskey(bus, :lon) && haskey(bus, :lat)
+            push!(lons, bus[:lon])
+            push!(lats, bus[:lat])
+        end
+    end    
+    
+    for (l, branch) in math_sym[:branch]
+        branch[:branch_id] = l
+    end
+
+    # Determine source coordinates if available
+    lon_s, lat_s = nothing, nothing
+    if length(lons) > 0
+        source_branch = findfirst(branch -> branch[:f_bus] == "sourcebus", math_sym[:branch])
+        if source_branch !== nothing
+            lon_s = math_sym[:bus][Symbol(math_sym[:branch][source_branch][:t_bus])][:lon]
+            lat_s = math_sym[:bus][Symbol(math_sym[:branch][source_branch][:t_bus])][:lat]
+        end
+    end
+    
+    layouting_vector = []
+
+    # Add `sourcebus` as the root
+    virtual_bus = findfirst(bus -> contains(bus[:name], "virtual_bus.voltage_source.source"), math_sym[:bus])
+
+    display(virtual_bus)
+    if haskey(math_sym[:bus], virtual_bus)
+        add_vertex!(network_graph, math_sym[:bus][virtual_bus])
+        if length(lons) > 0 && lon_s !== nothing && lat_s !== nothing
+            push!(layouting_vector, (lon_s, lat_s))
+        end
+    else 
+        error("sourcebus not found in the bus data. Please add sourcebus to the bus data.")
+    end
+
+    # Add the rest of the buses
+    for (b, bus) in math_sym[:bus]
+        if bus[:bus_id] != virtual_bus
+            add_vertex!(network_graph, bus)
+            if haskey(bus, :lon) && haskey(bus, :lat)
+                push!(layouting_vector, (bus[:lon], bus[:lat]))
+            end
+        end
+    end
+
+    # Use bus_id as the indexing property
+    set_indexing_prop!(network_graph, :bus_id)
+
+    # Add edges based on f_bus and t_bus
+    for (l, branch) in math_sym[:branch]
+        f_bus = Symbol(branch[:f_bus])
+        t_bus = Symbol(branch[:t_bus])
+        f_vertex = network_graph[f_bus, :bus_id]
+        t_vertex = network_graph[t_bus, :bus_id]
+        add_edge!(network_graph, f_vertex, t_vertex, branch)
+    end
+    
+    # Decide on the layout
+    if length(layouting_vector) > 1
+        GraphLayout = _ -> layouting_vector
+    else
+        @warn "Note there were no coordinates found for plotting, the fallback (e.g. tree layout) layout will be used"
+        GraphLayout = fallback_layout
+    end
+
+    return network_graph, GraphLayout
+end
 
 
 """
@@ -429,6 +486,31 @@ Plots a network tree based on the given engineering model dictionary `eng`.
 # Arguments
 - `eng::Dict{String,Any}`: A dictionary containing the engineering model data.
 - `makie_backend`: The backend to use for plotting. Defaults to `WGLMakie`.
+- `network_graph::MetaDiGraph`: The network graph to be plotted.
+- `GraphLayout::Function`: The layout function for positioning the nodes.
+- `tiles_provider`: The tile provider for the map background. Default is `TileProviders.Google(:satelite)`.
+- `zoom_lon`: The longitudinal zoom level. Default is `0.0942`.
+- `zoom_lat`: The latitudinal zoom level. Default is `0.0942`.
+- `makie_backend`: The Makie backend to use for plotting. Default is `WGLMakie`.
+- `figure_size`: The size of the figure in pixels. Default is `(1000, 1200)`.
+- `nlabels`: Node labels. Default is `nothing`.
+- `ilabels`: Internal labels. Default is `nothing`.
+- `node_color`: Color of the nodes. Default is `:black`.
+- `node_size`: Size of the nodes. Default is `automatic`.
+- `node_marker`: Marker style for the nodes. Default is `automatic`.
+- `node_strokewidth`: Stroke width of the nodes. Default is `automatic`.
+- `show_node_labels`: Whether to show node labels. Default is `false`.
+- `elabels`: Edge labels. Default is `nothing`.
+- `show_edge_labels`: Whether to show edge labels. Default is `false`.
+- `edge_color`: Color of the edges. Default is `:black`.
+- `elabels_color`: Color of the edge labels. Default is `:black`.
+- `elabels_fontsize`: Font size of the edge labels. Default is `10`.
+- `tangents`: Tangents for the edges. Default is `((0,-1),(0,-1))`.
+- `arrow_show`: Whether to show arrows on the edges. Default is `false`.
+- `arrow_marker`: Marker style for the arrows. Default is `'➤'`.
+- `arrow_size`: Size of the arrows. Default is `12`.
+- `arrow_shift`: Shift of the arrows. Default is `0.5`.
+- `kwargs`: Additional keyword arguments.
 
 # Returns
 - A tuple `(f, ax, p)` where `f` is the figure, `ax` is the axis, and `p` is the plot object.
@@ -457,7 +539,8 @@ function plot_network_tree(
                             kwargs...
                             )    
     # Create the network meta graph 
-   network_graph = create_graph(eng)
+   network_graph, GraphLayout = create_network_graph(eng, layout)
+    #
    println(network_graph)
     @warn typeof(network_graph)  
     # Handle labels if required
@@ -512,6 +595,30 @@ Plot a network graph with optional node and edge labels.
 - `show_node_labels::Bool`: Whether to display labels for the nodes. Default is `false`.
 - `show_edge_labels::Bool`: Whether to display labels for the edges. Default is `false`.
 - `fallback_layout`: The layout algorithm to use if no specific layout is provided. Default is `GraphMakie.Buchheim()`.
+- `network_graph::MetaDiGraph`: The network graph to be plotted.
+- `GraphLayout::Function`: The layout function for positioning the nodes.
+- `tiles_provider`: The tile provider for the map background. Default is `TileProviders.Google(:satelite)`.
+- `zoom_lon`: The longitudinal zoom level. Default is `0.0942`.
+- `zoom_lat`: The latitudinal zoom level. Default is `0.0942`.
+- `makie_backend`: The Makie backend to use for plotting. Default is `WGLMakie`.
+- `figure_size`: The size of the figure in pixels. Default is `(1000, 1200)`.
+- `nlabels`: Node labels. Default is `nothing`.
+- `ilabels`: Internal labels. Default is `nothing`.
+- `node_color`: Color of the nodes. Default is `:black`.
+- `node_size`: Size of the nodes. Default is `automatic`.
+- `node_marker`: Marker style for the nodes. Default is `automatic`.
+- `node_strokewidth`: Stroke width of the nodes. Default is `automatic`.
+- `show_node_labels`: Whether to show node labels. Default is `false`.
+- `elabels`: Edge labels. Default is `nothing`.
+- `show_edge_labels`: Whether to show edge labels. Default is `false`.
+- `edge_color`: Color of the edges. Default is `:black`.
+- `elabels_color`: Color of the edge labels. Default is `:black`.
+- `elabels_fontsize`: Font size of the edge labels. Default is `10`.
+- `tangents`: Tangents for the edges. Default is `((0,-1),(0,-1))`.
+- `arrow_show`: Whether to show arrows on the edges. Default is `false`.
+- `arrow_marker`: Marker style for the arrows. Default is `'➤'`.
+- `arrow_size`: Size of the arrows. Default is `12`.
+- `arrow_shift`: Shift of the arrows. Default is `0.5`.
 - `kwargs...`: Additional keyword arguments to pass to the plotting function.
 
 # Returns
@@ -560,6 +667,30 @@ Plots a network map based on the provided engineering data.
 - `eng::Dict{String, Any}`: A dictionary containing the engineering data required to create the network graph.
 - `show_node_labels::Bool`: A flag to indicate whether to display labels on the nodes. Default is `false`.
 - `show_edge_labels::Bool`: A flag to indicate whether to display labels on the edges. Default is `false`.
+- `network_graph::MetaDiGraph`: The network graph to be plotted.
+- `GraphLayout::Function`: The layout function for positioning the nodes.
+- `tiles_provider`: The tile provider for the map background. Default is `TileProviders.Google(:satelite)`.
+- `zoom_lon`: The longitudinal zoom level. Default is `0.0942`.
+- `zoom_lat`: The latitudinal zoom level. Default is `0.0942`.
+- `makie_backend`: The Makie backend to use for plotting. Default is `WGLMakie`.
+- `figure_size`: The size of the figure in pixels. Default is `(1000, 1200)`.
+- `nlabels`: Node labels. Default is `nothing`.
+- `ilabels`: Internal labels. Default is `nothing`.
+- `node_color`: Color of the nodes. Default is `:black`.
+- `node_size`: Size of the nodes. Default is `automatic`.
+- `node_marker`: Marker style for the nodes. Default is `automatic`.
+- `node_strokewidth`: Stroke width of the nodes. Default is `automatic`.
+- `show_node_labels`: Whether to show node labels. Default is `false`.
+- `elabels`: Edge labels. Default is `nothing`.
+- `show_edge_labels`: Whether to show edge labels. Default is `false`.
+- `edge_color`: Color of the edges. Default is `:black`.
+- `elabels_color`: Color of the edge labels. Default is `:black`.
+- `elabels_fontsize`: Font size of the edge labels. Default is `10`.
+- `tangents`: Tangents for the edges. Default is `((0,-1),(0,-1))`.
+- `arrow_show`: Whether to show arrows on the edges. Default is `false`.
+- `arrow_marker`: Marker style for the arrows. Default is `'➤'`.
+- `arrow_size`: Size of the arrows. Default is `12`.
+- `arrow_shift`: Shift of the arrows. Default is `0.5`.
 - `kwargs...`: Additional keyword arguments to customize the plot.
 
 # Returns

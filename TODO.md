@@ -13,8 +13,8 @@
   - [x] explore MATHEMATICAL model details
   - [x] filter elements MATHEMATICAL model details with a specific rule
   - [ ] missing elements in MATHEMATICAL model [transformer, switch and shunt]
-  - [ ] plot a tree of a PMD MATHEMATICAL Model
-  - [ ] plot a real graph if file has coordinates
+  - [x] plot a tree of a PMD MATHEMATICAL Model
+  - [x] plot a real graph if file has coordinates
   - [ ] explore SIMULATION RESULTS model summary
   - [ ] explore SIMULATION RESULTS model details
   - [ ] filter elements SIMULATION RESULTS model details with a specific rule
