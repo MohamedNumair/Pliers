@@ -1,5 +1,5 @@
 
-# MATH report 
+# MATH report d=====(￣▽￣*)b
 
 function math_report(math::Dict{String, Any}; detailed = false)
     print(UNDERLINE(BLUE_FG("Report for the ",   BOLD("$(get(math, "data_model", nothing))"),
@@ -207,7 +207,7 @@ end
 
 
 
-# MATH LOADS (. ❛ ᴗ ❛.)   
+# MATH LOADS (^_~)  
 function _initiate_math_loads_df()
     return DataFrame(   
         index = Int[],
@@ -280,6 +280,8 @@ function math_load_details(math, idx)
         pretty_table(table, header=["Name", "Value"])
     end
 end
+
+
 # MATH GEN (. ❛ ᴗ ❛.)
 
 

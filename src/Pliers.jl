@@ -17,6 +17,7 @@ using CairoMakie
 using WGLMakie
 using GLMakie
 using GraphMakie
+import GraphMakie: labels_theme    
 using GeoMakie
 using Proj
 using Tyler
@@ -68,7 +69,7 @@ const _STAT = Statistics
 # const _PMD = PowerModelsDistribution
 # const _PMDSE = PowerModelsDistributionStateEstimation
 
-author() = println("This package was developped by Mohamed Numair")
+author() = println("This package was developped by Mohamed Numair ✪ ω ✪")
 
 
 # included functionalities
@@ -77,10 +78,16 @@ author() = println("This package was developped by Mohamed Numair")
 # helper functions
 include("core/styles.jl")
 include("core/utils.jl")
+
+#PMD
+include("core/PMD/pmd-related-utils.jl")
+include("core/PMD/network_graph.jl")
 include("core/PMD/results_explorer.jl")
 include("core/PMD/eng_explorer.jl")
 include("core/PMD/math_explorer.jl")
 include("core/PMD/network_plotting.jl")
+
+#Export
 include("core/export.jl")
 
 include("io/load-networks.jl")
