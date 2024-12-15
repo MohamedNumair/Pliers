@@ -78,6 +78,13 @@ author() = println("This package was developped by Mohamed Numair ✪ ω ✪")
 include("core/styles.jl")
 include("core/utils.jl")
 
+#IO
+include("core/export.jl")
+
+include("io/networks_io.jl")
+include("io/util-enwl-networks.jl")
+include("io/util-spanish-networks.jl")
+
 #PMD
 include("core/PMD/pmd-related-utils.jl")
 include("core/PMD/network_graph.jl")
@@ -85,11 +92,6 @@ include("core/PMD/results_explorer.jl")
 include("core/PMD/eng_explorer.jl")
 include("core/PMD/math_explorer.jl")
 include("core/PMD/network_plotting.jl")
-
-#Export
-include("core/export.jl")
-
-include("io/load-networks.jl")
 
 
 end # module Pliers
