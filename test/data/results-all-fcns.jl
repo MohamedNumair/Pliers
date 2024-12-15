@@ -4,6 +4,8 @@ using Pliers.PowerModelsDistribution
 using Pliers.Proj
 using Pliers.CSV
 using Pliers.DataFrames
+using Pliers.FileIO
+
 
 # Loading Test files
 # Load the model
@@ -326,55 +328,101 @@ ieeeG = parse_file("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-12 
 ieeeG["bus"]
 
 
-using Makie
-WGLMakie.activate!()
-
-# Define the coordinates of the conductors
-x = [-4, -1.5, 3, 0]  # x-coordinates in feet
-h = [29, 29, 29, 25]  # heights in feet
-
-# Create a figure
-f = Figure()
-
-# Plot the conductors
-scatter([-4, -1.5, 3, 0] , [29, 29, 29, 25],  color=:blue, markersize=10)
-
-# Connect the conductors with lines
-lines!([0,0], [0,29], color=:black)
-lines!([0,-4], [29,29], color=:black)
-lines!([0,3], [29,29], color=:black)
-labels = ["A", "B", "C", "N"]
-text!(x,h; text=labels, align = (:right, :bottom))
-
-
 spain = parse_file("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/Master.dss")
 transform_loops!(spain)
 remove_all_bounds!(spain)
-eng_report(spain)
 spain["settings"]["base_frequency"] = 50
 Pliers.add_feeders_cktbks!(spain)
 
 
-Pliers.isolate_feeder(spain, 1)
+
+feeder = Pliers.isolate_feeder(spain, 160)
 
 
 
 
 for fno in 1:160
-    Feeder =  Pliers.isolate_feeder(spain, fno)
-    Pliers.rm_spanish_transformer!(Feeder)
-    plot_network_coords!(Feeder,)
+    Pliers.write_dss_file(spain, fno)
 end
 
 
-eng_report(Feeder)
-plot_network_tree(Feeder)
-plot_network_coords(Feeder)
-
-
-Pliers.write_dss_file(spain, 1)
 
 
 
-coordsSpanish = CSV.read("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/etrs_spn_coords.csv", DataFrame, header = false)
 
+
+for fno in 1:160
+    feeder = parse_file("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/spanish_feeders/Feeder_$fno.dss")
+    transform_loops!(feeder)
+    remove_all_bounds!(feeder)
+    Pliers.FileIO.save("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/spanish_feeders_eng/Feeder_$fno.jld2", feeder)
+end
+
+directory = "C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/spanish_feeders"
+
+
+file_names = []
+files_path = []
+
+for (root, dirs, file) in walkdir(directory)
+    for f in file
+        if occursin(".dss", f)
+            push!(file_names, f)
+            push!(files_path, joinpath(root, f))
+        end
+    end
+end
+
+files_path
+file_names
+
+for (file_name, file_path) in zip(file_names, files_path)
+    println(file_name)
+    println(file_path)
+    feeder= parse_file(file_path)
+    transform_loops!(feeder)
+    remove_all_bounds!(feeder)
+    file_name_first= split(file_name, ".")[1]
+    Pliers.FileIO.save("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/spanish_feeders_eng/$file_name_first.jld2", feeder)
+
+end
+
+
+transform_loops!(Feeder_1_spanish)
+
+
+plot_network_map(Feeder_1_spanish)
+
+math = transform_data_model(Feeder_1_spanish, kron_reduce=false, phase_project=false)
+
+
+feeder = Pliers.load_spanish_feeder(1)
+
+feeder[1]
+
+feeders = Pliers.load_spanish_network("td400291")
+
+
+Pliers.network_strings()[1]
+
+
+Network_number = 29
+feeders = Pliers.load_spanish_network(Pliers.network_strings()[Network_number])
+
+
+plot_network_map(feeders[1])
+
+for feeder in feeders 
+    plot_network_coords!(feeder)
+end
+
+
+
+f1 = Pliers.load_spanish_feeder(1)
+
+plot_network_map(f1)
+
+for i in 2:160
+    f = Pliers.load_spanish_feeder(i)
+    plot_network_coords!(f)
+end

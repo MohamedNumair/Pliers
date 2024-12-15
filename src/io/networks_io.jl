@@ -37,3 +37,90 @@ end
 function save_network(eng::Dict{String, Any}, name::String)
     save(joinpath(BASE_DIR,"test/data/OG-ENWL/$name.jld2"), eng)
 end
+
+
+
+
+
+
+function load_spanish_feeder(feederno::Int)
+
+    # match the file that has Feeder_$feederno in the name and load it, although the rest of the name is not known
+    files = []
+    file_name = "Feeder_$(feederno)_"
+    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+        for f in file
+            if occursin(file_name, f)
+                push!(files, joinpath(root, f))
+            end
+        end
+    end
+
+    isempty(files) && error("No file found for the given feederno")
+
+    
+    return length(files) > 1 ?  load.(files) : load(files[1])
+end
+
+function network_strings()
+    # walk the directory of the spanish feeders and collect the network strings by matching the regex Ntw_* in the file name and return a list of unique networks
+    network_strings = []
+    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+        for f in file
+            if occursin("Ntw_", f)
+                m = match(r"Ntw_\w+", f)
+                if m !== nothing
+                    push!(network_strings, string(split(m.match, "_")[2]))
+                end
+            end
+        end
+    end
+    return unique(network_strings)
+end
+
+function load_spanish_network(network_string::String)
+
+    # match the file that has Feeder_$feederno in the name and load it, although the rest of the name is not known
+    files = []
+    file_name = "Ntw_$(network_string)"
+    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+        for f in file
+            if occursin(file_name, f)
+                push!(files, joinpath(root, f))
+            end
+        end
+    end
+
+    isempty(files) && error("No file found for the given Network")
+
+    return length(files) > 1 ?  load.(files) : load(files[1])
+end
+
+
+## FILE SEARCHING 
+
+function search_files(directory, file_name)
+    files = []
+    for (root, dirs, file) in walkdir(directory)
+        for f in file
+            if occursin(file_name, f)
+                push!(files, joinpath(root, f))
+            end
+        end
+    end
+    return files
+end
+
+# write a search for directory
+
+function search_directories(directory, directory_name)
+    directories = []
+    for (root, dirs, file) in walkdir(directory)
+        for d in dirs
+            if occursin(directory_name, d)
+                push!(directories, joinpath(root, d))
+            end
+        end
+    end
+    return directories
+end

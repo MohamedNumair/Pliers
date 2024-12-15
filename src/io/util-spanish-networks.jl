@@ -946,14 +946,18 @@ end
 function write_dss_file(spanish_data::Dict, feeder_no::Int) 
     Feeder = isolate_feeder(spanish_data, feeder_no)
 
+    transformer_name = first(Feeder["transformer"]).second["name"]
     SecondaryV = first(Feeder["transformer"]).second["vm_nom"][2]
+    PrimaryBus = first(Feeder["transformer"]).second["bus"][1]
     SecondaryBus = first(Feeder["transformer"]).second["bus"][2]
 
-    dss_file = open(joinpath(BASE_DIR,"test/data/spanish_feeders/Feeder_$feeder_no.dss"), "w")
+    line_bf = string.([x for(x, line) in Feeder["line"] if line["f_bus"] == PrimaryBus || line["t_bus"] == PrimaryBus]...)
+    delete!(Feeder["line"], line_bf)
+    dss_file = open("C:/Users/mnumair/OneDrive - KU Leuven/PhD Agenda/2024/24-11 November/TSK-478 mappingEULV/Mapping Spanish/spanish_feeders/Feeder_$(feeder_no)_Ntw_$(transformer_name).dss", "w")
 
     # WRITING THE DSS FILE
     println(dss_file, "clear")
-    println(dss_file, "new circuit.$(Feeder["name"])")
+    println(dss_file, "new circuit.Feeder_$(feeder_no)_Ntw_$(transformer_name)")
     println(dss_file, "edit Vsource.Source bus1=$SecondaryBus basekv=$SecondaryV pu=1 phases=3 ISC3=9000  ISC1=5000")
     println(dss_file, "! edit Vsource.Source bus1=source basekv=22 pu=1.0001 phases=3 ISC3=9000  ISC1=5000 ! only uncomment if you want to include the transfomer")
     
@@ -1037,7 +1041,7 @@ function write_dss_file(spanish_data::Dict, feeder_no::Int)
     set mode=Daily number=481 stepsize=60m
     Calcvoltagebases
     solve
-    BusCoords Buscord_indexed.txt
+    BusCoords BusCoords_ETRS.csv
     Plot circuit Power Max=1000 dots=n labels=n subs=y C1=black 1ph=3
     ")
 
@@ -1045,5 +1049,24 @@ function write_dss_file(spanish_data::Dict, feeder_no::Int)
 
 end 
 
+
+# Coord Transform
+
 transSpanishTo4326 = Proj.Transformation("EPSG:3042", "EPSG:4326", always_xy=true) # ETRS89 / UTM zone 30N to WGS84
 #transSpanishTo4326 = Proj.Transformation("EPSG:25830", "EPSG:4326", always_xy=true) # ETRS89 / UTM zone 30N to WGS84
+
+
+function extract_spanish_network_and_feeder(file_path::String; pattern = r"(?i)\\Feeder_(\d+)_Ntw_(\d+).dss")
+    
+    # Match the pattern against the file path
+    matchedPattern = match(pattern, file_path)
+    
+    if matchedPattern !== nothing
+        # Extract the network and feeder numbers
+        Fdr = parse(Int, matchedPattern.captures[1])
+        Ntw = parse(Int, matchedPattern.captures[2])
+        return Ntw, Fdr
+    else
+        error("Pattern not found in the given file path")
+    end
+end
