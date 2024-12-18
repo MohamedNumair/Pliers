@@ -172,7 +172,7 @@ function create_network_graph_math(math::Dict{String,Any}, fallback_layout)
     end
 
 
-    # Determine source coordinates if available
+    # Determine source coordinates if available 
     lon_s, lat_s = nothing, nothing
     if length(lons) > 0
         virtual_branch = findfirst(branch -> contains(branch["name"], "_virtual_branch.voltage_source.source"), math["branch"])

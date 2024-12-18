@@ -1,5 +1,25 @@
 function load_enwl_model(ntw::Int, fdr::Int)
-    return load(joinpath(BASE_DIR,"test/data/MENWL/Ntw_$(ntw)_Fdr_$(fdr).jld2"))
+    eng = load(joinpath(BASE_DIR,"test/data/MENWL/Ntw_$(ntw)_Fdr_$(fdr).jld2"))
+    
+    # temporary fix for the linecode key in the eng dictionary which has a key ".0225" instead of "0.0225"
+    # find if the linecode of eng `eng["linecode"]` has a key ".0225" and if it does, then replace it with "0.0225"
+    #TODO: generalize if it has a key .## where ## is a number then replace it with 0.## in the key
+    if haskey(eng["linecode"], ".0225")
+        eng["linecode"]["0.0225"] = eng["linecode"][".0225"];
+        delete!(eng["linecode"], ".0225");
+    end
+
+    if haskey(eng["linecode"], ".035")
+        eng["linecode"]["0.035"] = eng["linecode"][".035"];
+        delete!(eng["linecode"], ".035");
+    end
+
+    if haskey(eng["linecode"], ".5")
+        eng["linecode"]["0.5"] = eng["linecode"][".5"];
+        delete!(eng["linecode"], ".5");
+    end
+
+    return eng
 end
 
 function load_enwl_model(ntw::Int, fdr::Int, type::String)
@@ -10,9 +30,9 @@ function load_enwl_model(ntw::Int, fdr::Int, type::String)
 
     folder_name_map = Dict(
         "four-wire" => "Four-wire-PMD",
-        "kron-reduced" => "Three-wire-Kron-reduced",
-        "modified-three-wire-pn" => "Three-wire-modified-phase-to-neutral",
-        "Three-wire-phase-to-neutral" => "three-wire-pn"
+        "kron-reduced" => "Three-wire-Kron-reduced-pmd",
+        "modified-three-wire-pn" => "Three-wire-modified-phase-to-neutral-pmd",
+        "Three-wire-phase-to-neutral" => "Three-wire-phase-to-neutral-pmd"
     )
     # Get the folder_name using the type parameter
     folder_name = get(folder_name_map, type, "default_folder")  # "default_folder" is a fallback if type is not found
@@ -48,7 +68,7 @@ function load_spanish_feeder(feederno::Int)
     # match the file that has Feeder_$feederno in the name and load it, although the rest of the name is not known
     files = []
     file_name = "Feeder_$(feederno)_"
-    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+    for (root, dirs, file) in walkdir(joinpath(BASE_DIR,"test/data/spanish_feeders_eng"))
         for f in file
             if occursin(file_name, f)
                 push!(files, joinpath(root, f))
@@ -62,10 +82,10 @@ function load_spanish_feeder(feederno::Int)
     return length(files) > 1 ?  load.(files) : load(files[1])
 end
 
-function network_strings()
+function spanish_network_strings()
     # walk the directory of the spanish feeders and collect the network strings by matching the regex Ntw_* in the file name and return a list of unique networks
     network_strings = []
-    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+    for (root, dirs, file) in walkdir(joinpath(BASE_DIR,"test/data/spanish_feeders_eng"))
         for f in file
             if occursin("Ntw_", f)
                 m = match(r"Ntw_\w+", f)
@@ -83,7 +103,7 @@ function load_spanish_network(network_string::String)
     # match the file that has Feeder_$feederno in the name and load it, although the rest of the name is not known
     files = []
     file_name = "Ntw_$(network_string)"
-    for (root, dirs, file) in walkdir("test/data/spanish_feeders_eng")
+    for (root, dirs, file) in walkdir(joinpath(BASE_DIR,"test/data/spanish_feeders_eng"))
         for f in file
             if occursin(file_name, f)
                 push!(files, joinpath(root, f))
@@ -96,6 +116,10 @@ function load_spanish_network(network_string::String)
     return length(files) > 1 ?  load.(files) : load(files[1])
 end
 
+
+function load_spanish_dataset()
+    return load(joinpath(BASE_DIR,"test/data/Spanish_Network.jld2"))
+end
 
 ## FILE SEARCHING 
 

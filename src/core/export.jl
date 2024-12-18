@@ -5,4 +5,5 @@ export load_en_model, all_en_names
 
 export math_report, math_buses_table, math_branches_table, math_branch_details,math_loads_table, math_gen_table, math_gen_details,math_load_details, math_bus_details #math_explorer.jl
 export get_graph_node, get_graph_edge, create_network_graph #network_graph.jl
-export save_network, load_enwl_model #networks_io.jl
+export load_enwl_model, all_en_names, load_en_model, save_network, load_spanish_feeder, spanish_network_strings, load_spanish_network, load_spanish_dataset  #networks_io.jl
+export pf_results, bus_res #results_explorer.jl

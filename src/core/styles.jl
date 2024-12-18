@@ -37,3 +37,9 @@ highlight_off_diagonal = Highlighter(
     f=(data, i, j) -> i != j-1,
     crayon=Crayon(foreground = :white, bold=true)
 )
+
+# for the results table in PMD
+_highlight_results_status = Highlighter(
+    f=(data, i, j) -> i==1 && string(data[i,j]) == "PF_CONVERGED",
+    crayon=Crayon(foreground = :green, bold=true)
+)

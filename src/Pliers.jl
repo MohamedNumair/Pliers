@@ -38,7 +38,7 @@ using MetaGraphs
 # Power Distribution Tools
 using PowerModelsDistribution
 #using PowerModelsDistributionStateEstimation
-
+using Ipopt
 
 # pkg const
 const pkg_name = "Pliers"

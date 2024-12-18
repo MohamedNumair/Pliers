@@ -417,8 +417,6 @@ function plot_network_tree(
     # Create the network meta graph 
    network_graph, _, _ = create_network_graph(data, layout)
     #
-   println(network_graph)
-    @warn typeof(network_graph)  
     # Handle labels if required
     nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
     elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, :branch_id)) for e in edges(network_graph)] : nothing 
@@ -574,7 +572,6 @@ function plot_network_coords!(
     # Handle labels if required
     nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
     elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, edge_labels_type)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, edge_labels_type == :line_id ? :branch_id : edge_labels_type)) for e in edges(network_graph)] : nothing 
-    display(elabels)
     # FORCED NODE FORMATTING:   
     _decorate_nodes!(network_graph, data)
     node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
