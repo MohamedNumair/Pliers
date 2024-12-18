@@ -54,14 +54,14 @@ function pf_results(results::Dict{String, Any}, math::Dict{String, Any}, eng::Di
         t_bus = string(math["branch"][br]["t_bus"])
         
         if math["bus"][f_bus]["terminals"] != math["branch"][br]["f_connections"]
-           # warning_text(" for branch $br, the from terminals are $(math["branch"][br]["f_connections"]) which is different than f_bus $f_bus $(math["bus"][f_bus]["terminals"] )")
+           warning_text(" for branch $br, the from terminals are $(math["branch"][br]["f_connections"]) which is different than f_bus $f_bus $(math["bus"][f_bus]["terminals"] )")
             Vf = [pf_sol["bus"][f_bus]["V"][i] for i in math["branch"][br]["f_connections"]]
         else
             Vf = pf_sol["bus"][f_bus]["V"]
         end
         
         if math["bus"][t_bus]["terminals"] != math["branch"][br]["t_connections"]
-           # warning_text(" for branch $br, the to terminals are $(math["branch"][br]["t_connections"]) which is different than t_bus $t_bus $(math["bus"][t_bus]["terminals"] )")
+           warning_text(" for branch $br, the to terminals are $(math["branch"][br]["t_connections"]) which is different than t_bus $t_bus $(math["bus"][t_bus]["terminals"] )")
             Vt = [pf_sol["bus"][t_bus]["V"][i] for i in math["branch"][br]["t_connections"]]
         else
             Vt = pf_sol["bus"][t_bus]["V"]
@@ -173,7 +173,7 @@ function pf_results(eng::Dict{String, Any}; kwargs...)
 
     is_explicit_netrual = length(eng["conductor_ids"]) > 3 ? true :  false
     math=transform_data_model(eng, kron_reduce=!is_explicit_netrual, phase_project=!is_explicit_netrual)
-
+    
     add_start_vrvi!(math)
     PF = compute_mc_pf(math; explicit_neutral=is_explicit_netrual, max_iter=15)
 

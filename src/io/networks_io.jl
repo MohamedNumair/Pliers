@@ -19,6 +19,12 @@ function load_enwl_model(ntw::Int, fdr::Int)
         delete!(eng["linecode"], ".5");
     end
 
+    for (_, line) in eng["line"]
+        if line["length"] == 0.0
+            line["length"] = 0.01
+        end
+    end 
+
     return eng
 end
 
