@@ -6,10 +6,10 @@ end
     create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) -> MetaDiGraph, Function, Dict{Symbol,Any}
 """
 function create_network_graph_eng(eng::Dict{String,Any}, fallback_layout) 
-    PowerModelsDistribution.transform_loops!(eng)
+    PowerModelsDistribution.transform_loops!(eng) #TODO: remove comment
     eng_sym = convert_keys_to_symbols(deepcopy(eng))
     network_graph = MetaDiGraph()
-
+    
     lons = []
     lats = []
     

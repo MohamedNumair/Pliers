@@ -1,10 +1,36 @@
 
 
-## plotting
+#=
+ _______   __              __      __      __                     
+/       \ /  |            /  |    /  |    /  |                    
+$$$$$$$  |$$ |  ______   _$$ |_  _$$ |_   $$/  _______    ______  
+$$ |__$$ |$$ | /      \ / $$   |/ $$   |  /  |/       \  /      \ 
+$$    $$/ $$ |/$$$$$$  |$$$$$$/ $$$$$$/   $$ |$$$$$$$  |/$$$$$$  |
+$$$$$$$/  $$ |$$ |  $$ |  $$ | __ $$ | __ $$ |$$ |  $$ |$$ |  $$ |
+$$ |      $$ |$$ \__$$ |  $$ |/  |$$ |/  |$$ |$$ |  $$ |$$ \__$$ |
+$$ |      $$ |$$    $$/   $$  $$/ $$  $$/ $$ |$$ |  $$ |$$    $$ |
+$$/       $$/  $$$$$$/     $$$$/   $$$$/  $$/ $$/   $$/  $$$$$$$ |
+                                                        /  \__$$ |
+                                                        $$    $$/ 
+                                                         $$$$$$/  
+=#
 
 
 
-
+#=
+ _______   __              __            ________                                __      __                     
+/       \ /  |            /  |          /        |                              /  |    /  |                    
+$$$$$$$  |$$ |  ______   _$$ |_         $$$$$$$$/__    __  _______    _______  _$$ |_   $$/   ______   _______  
+$$ |__$$ |$$ | /      \ / $$   |        $$ |__  /  |  /  |/       \  /       |/ $$   |  /  | /      \ /       \ 
+$$    $$/ $$ |/$$$$$$  |$$$$$$/         $$    | $$ |  $$ |$$$$$$$  |/$$$$$$$/ $$$$$$/   $$ |/$$$$$$  |$$$$$$$  |
+$$$$$$$/  $$ |$$ |  $$ |  $$ | __       $$$$$/  $$ |  $$ |$$ |  $$ |$$ |        $$ | __ $$ |$$ |  $$ |$$ |  $$ |
+$$ |      $$ |$$ \__$$ |  $$ |/  |      $$ |    $$ \__$$ |$$ |  $$ |$$ \_____   $$ |/  |$$ |$$ \__$$ |$$ |  $$ |
+$$ |      $$ |$$    $$/   $$  $$/       $$ |    $$    $$/ $$ |  $$ |$$       |  $$  $$/ $$ |$$    $$/ $$ |  $$ |
+$$/       $$/  $$$$$$/     $$$$/        $$/      $$$$$$/  $$/   $$/  $$$$$$$/    $$$$/  $$/  $$$$$$/  $$/   $$/ 
+                                                                                                                
+                                                                                                                
+                                                                                                                
+=#
 
 
 
@@ -352,7 +378,20 @@ function network_graph_map_plot(
     return m
 end
 
-
+#=
+ _______   __              __            _______                       __                               
+/       \ /  |            /  |          /       \                     /  |                              
+$$$$$$$  |$$ |  ______   _$$ |_         $$$$$$$  |  ______    _______ $$/   ______    ______    _______ 
+$$ |__$$ |$$ | /      \ / $$   |        $$ |__$$ | /      \  /       |/  | /      \  /      \  /       |
+$$    $$/ $$ |/$$$$$$  |$$$$$$/         $$    $$< /$$$$$$  |/$$$$$$$/ $$ |/$$$$$$  |/$$$$$$  |/$$$$$$$/ 
+$$$$$$$/  $$ |$$ |  $$ |  $$ | __       $$$$$$$  |$$    $$ |$$ |      $$ |$$ |  $$ |$$    $$ |$$      \ 
+$$ |      $$ |$$ \__$$ |  $$ |/  |      $$ |  $$ |$$$$$$$$/ $$ \_____ $$ |$$ |__$$ |$$$$$$$$/  $$$$$$  |
+$$ |      $$ |$$    $$/   $$  $$/       $$ |  $$ |$$       |$$       |$$ |$$    $$/ $$       |/     $$/ 
+$$/       $$/  $$$$$$/     $$$$/        $$/   $$/  $$$$$$$/  $$$$$$$/ $$/ $$$$$$$/   $$$$$$$/ $$$$$$$/  
+                                                                          $$ |                          
+                                                                          $$ |                          
+                                                                          $$/                           
+=#
 
 """
     plot_network_tree(eng::Dict{String,Any}; makie_backend=WGLMakie)
@@ -412,24 +451,32 @@ function plot_network_tree(
                             show_node_labels = false,
                             show_edge_labels = false,
                             layout=GraphMakie.Buchheim(),
+                            edge_labels_type = :line_id,
+                            phase = "1",
                             kwargs...
                             )    
     # Create the network meta graph 
    network_graph, _, _ = create_network_graph(data, layout)
-    #
+    
     # Handle labels if required
-    nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
-    elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, :branch_id)) for e in edges(network_graph)] : nothing 
+    nlabels = show_node_labels ? _write_nlabels(network_graph, data) : nothing
+    elabels = show_edge_labels ? edge_labels_type == :line_id ? _write_line_id_elabels(network_graph, data) : _write_results_elabels(network_graph, data, phase) : nothing
 
     # FORCED NODE FORMATTING:
     # 1. Identify the sourcebus
-    _decorate_nodes!(network_graph, data)
-    node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
-    node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
-    node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
-    
-    _decorate_edges(network_graph, data)
-    edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
+    if _is_eng(data)
+        _decorate_nodes!(network_graph, data)
+        node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
+        node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
+        node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
+        _decorate_edges(network_graph, data)
+        edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
+    else
+        node_color = :black
+        node_marker = :circle
+        node_size = 10
+        edge_color = :black
+    end
     # plot and return the network 
    return network_graph_plot(
                                 network_graph;
@@ -523,23 +570,32 @@ function plot_network_coords(
                             show_node_labels=false,
                             show_edge_labels = false,
                             fallback_layout=GraphMakie.Buchheim(),
+                            edge_labels_type = :line_id,
+                            phase = "1",
                             kwargs...
                             )
 
     network_graph, GraphLayout, _ = create_network_graph(data, fallback_layout)
 
     # Handle labels if required
-    nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
-    elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, :linecode)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, :branch_id)) for e in edges(network_graph)] : nothing 
+    nlabels = show_node_labels ? _write_nlabels(network_graph, data) : nothing
+    elabels = show_edge_labels ? edge_labels_type == :line_id ? _write_line_id_elabels(network_graph, data) : _write_results_elabels(network_graph, data, phase) : nothing
+
+    
     # FORCED NODE FORMATTING:   
-    _decorate_nodes!(network_graph, data)
-    node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
-    node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
-    node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
-
-    _decorate_edges(network_graph, data)
-    edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
-
+    if _is_eng(data)
+        _decorate_nodes!(network_graph, data)
+        node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
+        node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
+        node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
+        _decorate_edges(network_graph, data)
+        edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
+    else
+        node_color = :black
+        node_marker = :circle
+        node_size = 10
+        edge_color = :black
+    end
 
     # Plot the graph
     return  network_graph_plot(
@@ -570,8 +626,9 @@ function plot_network_coords!(
     network_graph, GraphLayout, _ = create_network_graph(data, fallback_layout)
 
     # Handle labels if required
-    nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
-    elabels = show_edge_labels ? _is_eng(data) ? [string(get_prop(network_graph, e, edge_labels_type)) for e in edges(network_graph)] : [string(get_prop(network_graph, e, edge_labels_type == :line_id ? :branch_id : edge_labels_type)) for e in edges(network_graph)] : nothing 
+    nlabels = show_node_labels ? _write_nlabels(network_graph, data) : nothing
+    elabels = show_edge_labels ? edge_labels_type == :line_id ? _write_line_id_elabels(network_graph, data) : _write_results_elabels(network_graph, data, phase) : nothing
+
     # FORCED NODE FORMATTING:   
     _decorate_nodes!(network_graph, data)
     node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
@@ -644,25 +701,35 @@ function plot_network_map(
                             data::Dict{String, Any}; 
                             show_node_labels=false,
                             show_edge_labels=false,
+                            edge_labels_type = :line_id,
+                            phase = "1",
                             kwargs...
                         )
     network_graph, GraphLayout = create_network_graph(data, GraphMakie.Buchheim())
-    nlabels = show_node_labels ? [string(network_graph[i, :bus_id]) for i in 1:nv(network_graph)] : nothing
-    elabels = show_edge_labels ? [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] : nothing
+
+    # Handle labels if required
+    nlabels = show_node_labels ? _write_nlabels(network_graph, data) : nothing
+    elabels = show_edge_labels ? edge_labels_type == :line_id ? _write_line_id_elabels(network_graph, data) : _write_results_elabels(network_graph, data, phase) : nothing
+
 
     if !isa(GraphLayout, Function)
         @warn "You are attempting to plot a network without coordinates on the map, that is not possible, instead the network tree graph will be plotted"
         return plot_network_coords(data, show_node_labels=show_node_labels, show_edge_labels=show_edge_labels, kwargs...)
     else
         @info "Plotting network map with coordinates on the map -- it is your responsibility to ensure the coordinates are at the correct place"
-        _decorate_nodes!(network_graph, data)
-        node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
-        node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
-        node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
-
-        _decorate_edges(network_graph, data)
-        edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
-            
+        if _is_eng(data)
+            _decorate_nodes!(network_graph, data)
+            node_color = [ props(network_graph, i)[:node_color] for i in 1:nv(network_graph)]
+            node_marker = [ props(network_graph, i)[:node_marker] for i in 1:nv(network_graph)]
+            node_size = [ props(network_graph, i)[:marker_size] for i in 1:nv(network_graph)]
+            _decorate_edges(network_graph, data)
+            edge_color = [ get_prop(network_graph, e, :edge_color) for e in edges(network_graph)]
+        else
+            node_color = :black
+            node_marker = :circle
+            node_size = 10
+            edge_color = :black
+        end         
         return network_graph_map_plot(
                                         network_graph, GraphLayout;
                                         nlabels=nlabels,
@@ -680,7 +747,20 @@ function plot_network_map(
 
 end
 
-
+#=
+ _______                                                      __      __                     
+/       \                                                    /  |    /  |                    
+$$$$$$$  |  ______    _______   ______    ______   ______   _$$ |_   $$/   ______   _______  
+$$ |  $$ | /      \  /       | /      \  /      \ /      \ / $$   |  /  | /      \ /       \ 
+$$ |  $$ |/$$$$$$  |/$$$$$$$/ /$$$$$$  |/$$$$$$  |$$$$$$  |$$$$$$/   $$ |/$$$$$$  |$$$$$$$  |
+$$ |  $$ |$$    $$ |$$ |      $$ |  $$ |$$ |  $$/ /    $$ |  $$ | __ $$ |$$ |  $$ |$$ |  $$ |
+$$ |__$$ |$$$$$$$$/ $$ \_____ $$ \__$$ |$$ |     /$$$$$$$ |  $$ |/  |$$ |$$ \__$$ |$$ |  $$ |
+$$    $$/ $$       |$$       |$$    $$/ $$ |     $$    $$ |  $$  $$/ $$ |$$    $$/ $$ |  $$ |
+$$$$$$$/   $$$$$$$/  $$$$$$$/  $$$$$$/  $$/       $$$$$$$/    $$$$/  $$/  $$$$$$/  $$/   $$/ 
+                                                                                             
+                                                                                             
+                                                                                             
+=#
 
 function _decorate_nodes!(network_graph::MetaDiGraph, data::Dict{String,Any})
     if _is_eng(data)
@@ -830,5 +910,147 @@ function _decorate_edges(network_graph::MetaDiGraph, data::Dict{String,Any})
         end 
     else
         #TODO: MATH related formatting
+    end
+end
+
+
+function _decorate_edges(network_graph::MetaDiGraph, data::Dict{String,Any}, phase::String)
+    if _is_eng(data)
+        for (_, edge) in network_graph.eprops
+            if !isempty(edge[:t_connections])
+                if length(edge[:t_connections]) == 1
+                    if edge[:t_connections] == [1]
+                        edge[:edge_color] = :red
+                    elseif edge[:t_connections] == [2]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [3]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [4]
+                        edge[:edge_color] = :white
+                    else
+                        error("Unexpected connections: $(edge[:t_connections])")
+                    end
+                elseif length(edge[:t_connections]) == 2
+                    if edge[:t_connections] == [1, 4]
+                        edge[:edge_color] = :red
+                    elseif edge[:t_connections] == [2, 4]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [3, 4]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [1, 2]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [2, 3]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [3, 1]
+                        edge[:edge_color] = :white
+                    else
+                        error("Unexpected connections: $(edge[:t_connections])")
+                    end
+                elseif length(edge[:t_connections]) == 3
+                    if edge[:t_connections] == [1, 2, 3]
+                        edge[:edge_color] = :red
+                    elseif edge[:t_connections] == [1, 2, 4]
+                        edge[:edge_color] = :red
+                    elseif edge[:t_connections] == [2, 3, 4]
+                        edge[:edge_color] = :white
+                    elseif edge[:t_connections] == [3, 1, 4]
+                        edge[:edge_color] = :red
+                    else
+                        error("Unexpected connections: $(edge[:t_connections])")
+                    end
+                elseif length(edge[:t_connections]) == 4
+                    if edge[:t_connections] == [1, 2, 3, 4]
+                        edge[:edge_color] = :red
+                    else
+                        error("Unexpected connections: $(edge[:t_connections])")
+                    end
+                else
+                    edge[:edge_color] = :white
+                end
+            else
+                edge[:edge_color] = :white
+            
+            end
+        end 
+    else
+        #TODO: MATH related formatting
+    end
+end
+
+#=
+__                  __                  __                  __    __                            __  __  __                     
+/  |                /  |                /  |                /  |  /  |                          /  |/  |/  |                    
+$$ |        ______  $$ |____    ______  $$ |  _______       $$ |  $$ |  ______   _______    ____$$ |$$ |$$/  _______    ______  
+$$ |       /      \ $$      \  /      \ $$ | /       |      $$ |__$$ | /      \ /       \  /    $$ |$$ |/  |/       \  /      \ 
+$$ |       $$$$$$  |$$$$$$$  |/$$$$$$  |$$ |/$$$$$$$/       $$    $$ | $$$$$$  |$$$$$$$  |/$$$$$$$ |$$ |$$ |$$$$$$$  |/$$$$$$  |
+$$ |       /    $$ |$$ |  $$ |$$    $$ |$$ |$$      \       $$$$$$$$ | /    $$ |$$ |  $$ |$$ |  $$ |$$ |$$ |$$ |  $$ |$$ |  $$ |
+$$ |_____ /$$$$$$$ |$$ |__$$ |$$$$$$$$/ $$ | $$$$$$  |      $$ |  $$ |/$$$$$$$ |$$ |  $$ |$$ \__$$ |$$ |$$ |$$ |  $$ |$$ \__$$ |
+$$       |$$    $$ |$$    $$/ $$       |$$ |/     $$/       $$ |  $$ |$$    $$ |$$ |  $$ |$$    $$ |$$ |$$ |$$ |  $$ |$$    $$ |
+$$$$$$$$/  $$$$$$$/ $$$$$$$/   $$$$$$$/ $$/ $$$$$$$/        $$/   $$/  $$$$$$$/ $$/   $$/  $$$$$$$/ $$/ $$/ $$/   $$/  $$$$$$$ |
+                                                                                                                      /  \__$$ |
+                                                                                                                      $$    $$/                                                                                                                      $$$$$$/  
+=#
+
+## NODES
+function _write_nlabels(network_graph, data)
+    nlabels = []
+    for i in 1:nv(network_graph)
+        push!(nlabels,
+                         string(network_graph[i, :bus_id])
+            )
+    end
+    return nlabels
+end
+
+
+## EDGES
+
+
+function _write_line_id_elabels(network_graph, data)
+   if _is_eng(data) 
+        [string(get_prop(network_graph, e, :line_id)) for e in edges(network_graph)] 
+    else
+         [string(get_prop(network_graph, e, :branch_id)) for e in edges(network_graph)]
+    end
+end
+
+
+function _check_bases(eng_res::Dict{String, Any})
+    if haskey(eng_res, "bases")
+       return eng_res["bases"]["is_perunit"], eng_res["bases"]["vbase_V"], eng_res["bases"]["sbase_VA"], eng_res["bases"]["Zbase_Ω"], eng_res["bases"]["Ibase_A"]
+    else
+        return false, 0.0, 0.0, 0.0, 0.0
+    end
+
+end
+
+
+function _write_results_elabels(network_graph, data, phase)
+    if !_is_eng(data)
+        error("The data is not an engineering model, also it has to have the results to be able to plot them the edge labels")
+    end
+    
+    try
+        elabels = []
+        _, vbase_V, _, _, Ibase_A = _check_bases(data)
+
+        for e in edges(network_graph)
+
+            var_i_dict = get_prop(network_graph, e, :I_f) # variable current
+            var_v_dict = get_prop(network_graph, e, :V_f) # variable voltage
+
+            if haskey(var_i_dict, Symbol(phase)) && haskey(var_v_dict, Symbol(phase))
+                push!(elabels, "V$phase =$(round(abs.(var_v_dict[Symbol(phase)])*vbase_V, digits=2)) ∠ $(round(rad2deg.(angle.(var_v_dict[Symbol(phase)])), digits=2))\n
+                I$phase=$(round(abs.(var_i_dict[Symbol(phase)])*Ibase_A, digits=2)) ∠ $(round(rad2deg.(angle.(var_i_dict[Symbol(phase)])), digits=2))"
+                                )
+            else
+                push!(elabels, "N/A")
+            end
+        end
+
+    return elabels
+
+    catch e
+        error("maybe the data model you passed doesn't have the results?  You need to run for example `eng_res, math, PF = pf_results(eng);` and then pass the eng_res which has results \n error is: \n $e")
     end
 end
